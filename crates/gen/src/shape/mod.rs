@@ -1,9 +1,44 @@
+use std::iter::Map;
+
 mod tests;
 
+// #[derive(Debug)]
+// pub struct CircleVec<T> {
+//   vec:Vec<T>
+// }
+
+// impl<'a, T> CircleVec<T>
+// where T: 'a {
+//   pub fn from_vec(vec: Vec<T>) -> Self {
+//     Self { vec }
+//   }
+// }
+
+// impl<'a, T> std::ops::Index<usize> for CircleVec<T>
+// where T: 'a {
+//   type Output = T;
+
+//   fn index(&self, index: usize) -> &Self::Output {
+//     &self.vec[index % self.vec.len()]
+//   }
+// }
+
+// unsafe impl<'a, T> std::slice::SliceIndex<usize> for CircleVec<T>
+// where T: 'a {
+//   type Output = T;
+
+//   fn index(&self, range: std::ops::Range<usize>) {
+//     //&self.vec[index % self.vec.len()]
+//   }
+// }
+
 #[derive(Debug, Copy, Clone, PartialEq)]
-struct Point<T> {
-  x: T,
-  y: T,
+pub struct Point<T: Copy>([T; 2]);
+impl<T: Copy> Point<T> {
+  #[inline]
+  pub fn x(&self) -> T { self.0[0] }
+  #[inline]
+  pub fn y(&self) -> T { self.0[1] }
 }
 
 #[derive(Debug, PartialEq)]
@@ -22,9 +57,77 @@ enum EdgeSegment {
 }
 
 #[derive(Debug)]
-struct Contour {
+pub struct Contour {
   edge_segments: Vec<EdgeSegment>,
+  corners: Vec<usize>,
+  // // edges: Vec<Ranges>, views into groups of edge_segments that form one contiguous smooth edge.
+  // corners: Vec<usize> // indices into edge_segments, denotes a sharp corner after the segment.
+  // then we can call a `edges()/splines() -> iter(T)` method (chain two slice iterators if crosses
+  // boundary).
   points: Vec<Point<f32>>,
+}
+impl Contour {
+  pub fn corners(&self) -> Vec<Point<f32>> {
+    self.corners.iter().map(|&idx| { self.points[idx] }).collect()
+  }
+}
+
+
+#[inline]
+fn det(m: [[f32; 2]; 2]) -> f32 {
+  // The determinant of a 2 by 2 matrix.
+  m[0][0]*m[1][1] - m[0][1]*m[1][0]
+}
+
+#[inline]
+fn dot(a: [f32; 2], b: [f32; 2]) -> f32 {
+  // The dot product of a pair of 2D vectors.
+  a[0]*b[0] + a[1]*b[1]
+}
+
+#[inline]
+fn mag(a: [f32; 2]) -> f32 {
+  // The magnitude of a 2D vector.
+  (a[0]*a[0] + a[1]*a[1]).sqrt()
+}
+
+#[inline]
+fn normalize(a: [f32; 2]) -> [f32; 2] {
+  // The unit vector in the direction of a 2D vector.
+  let mag_a = mag(a);
+  [a[0]/mag_a, a[1]/mag_a]
+}
+
+
+const corner_threshold: f32 = 0.05; // approx 3 degrees.
+const cos_corner_threshold: f32 = 1.0-0.5*(corner_threshold*corner_threshold); //small angle approx
+#[inline]
+fn is_corner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
+  // Compare the vector A->B and B->C to see if there is a sharp corner at Point B.
+  // The const `theta_threshold` is a small deflection (in radians) that will be permissible when
+  // considering whether the two vectors constitute a "straight" line.
+  let ab = [(b.x()-a.x()), (b.y()-a.y())];
+  let bc = [(c.x()-b.x()), (c.y()-b.y())];
+  // Check the angle between the two vectors is using the dot product:
+  // AB dot BC = |AB||BC|cos(theta).
+  // => (AB dot BC)/|AB||BC|  =  1 - (theta^2)/2, as theta -> 0, and
+  //   -(AB dot BC)/|AB||BC|  =  1 - (theta^2)/2, as theta -> pi.
+  let lhs = dot(ab, bc)/(mag(ab)*mag(bc));
+  // return false if the two vectors are not both almost parallel and in the same direction.
+  return !(
+    lhs.abs() >= cos_corner_threshold // parallel.
+    && lhs >= 0.0 // codirectional (angle is less than pi/2).
+  )
+}
+#[inline]
+fn iscorner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
+  let ab = [(b.x()-a.x()), (b.y()-a.y())];
+  let bc = [(c.x()-b.x()), (c.y()-b.y())];
+  // return false if the two vectors are not both almost parallel and in the same direction.
+  return !(
+    dot(ab, bc) > 0.0
+    && det([ab, bc])/(mag(ab)*mag(bc)) <= corner_threshold
+  )
 }
 
 #[derive(Debug)]
@@ -37,6 +140,10 @@ impl Shape {
   /// Returns a ShapeBuilder.
   pub fn build() -> ShapeBuilder {
     ShapeBuilder::new()
+  }
+
+  pub fn contours(&self) -> &Vec<Contour> {
+    &self.contours
   }
 
   /// Returns an SVG representation of the Shape.
@@ -85,22 +192,29 @@ impl ShapeBuilder {
     self
   }
 
+  //TODO corner adding algorithms adds corners when there's only 1 edge_segment. should skip first
+  // check.
+
   /// Create a new Contour.
   pub fn contour(mut self) -> Self {
     self.state = ShapeBuilderState::Contour;
     self.shape.contours.push(Contour {
       edge_segments: vec![],
-      points: vec![Point { x: 0.0, y: 0.0 }],
+      corners: vec![],
+      points: vec![Point([0.0, 0.0])],
     });
     self
   }
 
   /// Set the starting coordinates of the current Contour.
   pub fn start(mut self, x: f32, y: f32) -> Self {
+    if self.state == ShapeBuilderState::Shape {
+      self = self.contour();
+    }
     match self.state {
       ShapeBuilderState::Contour => {
         let contour = &mut self.shape.contours.last_mut().unwrap();
-        contour.points[0] = Point { x, y };
+        contour.points[0] = Point([x, y]);
       },
       _ => panic!(),
     }
@@ -115,8 +229,17 @@ impl ShapeBuilder {
     match self.state {
       ShapeBuilderState::Contour => {
         let contour = &mut self.shape.contours.last_mut().unwrap();
+        // check if it's a sharp corner
+        let len = contour.points.len();
+        let a = contour.points[len-1- (len>1) as usize];
+        let b = contour.points[len-1];
+        let c = Point([x, y]);
+        if is_corner(a, b, c) {
+          contour.corners.push(len-1)
+        }
+        // Add line
         contour.edge_segments.push(EdgeSegment::Line);
-        contour.points.push(Point { x, y });
+        contour.points.push(c);
       },
       _ => panic!(),
     }
@@ -131,9 +254,18 @@ impl ShapeBuilder {
     match self.state {
       ShapeBuilderState::Contour => {
         let contour = &mut self.shape.contours.last_mut().unwrap();
+        // check if it's a sharp corner
+        let len = contour.points.len();
+        let a = contour.points[len-1- (len>1) as usize];
+        let b = contour.points[len-1];
+        let c = Point([x1, y1]);
+        if is_corner(a, b, c) {
+          contour.corners.push(len-1)
+        }
+        // Add bezier
         contour.edge_segments.push(EdgeSegment::Quadratic);
-        contour.points.push(Point { x: x1, y: y1 });
-        contour.points.push(Point { x, y });
+        contour.points.push(c);
+        contour.points.push(Point([x, y]));
       },
       _ => panic!(),
     }
@@ -148,10 +280,19 @@ impl ShapeBuilder {
     match self.state {
       ShapeBuilderState::Contour => {
         let contour = &mut self.shape.contours.last_mut().unwrap();
+        // check if it's a sharp corner
+        let len = contour.points.len();
+        let a = contour.points[len-1- (len>1) as usize];
+        let b = contour.points[len-1];
+        let c = Point([x1, y1]);
+        if is_corner(a, b, c) {
+          contour.corners.push(len-1)
+        }
+        // Add bezier
         contour.edge_segments.push(EdgeSegment::Cubic);
-        contour.points.push(Point { x: x1, y: y1 });
-        contour.points.push(Point { x: x2, y: y2 });
-        contour.points.push(Point { x, y });
+        contour.points.push(c);
+        contour.points.push(Point([x2, y2]));
+        contour.points.push(Point([x, y]));
       },
       _ => panic!(),
     }
@@ -160,16 +301,27 @@ impl ShapeBuilder {
 
   /// Generate the Shape.
   pub fn finalise(mut self) -> Shape {
-    // Check starting and ending points are equal.
     for contour in self.shape.contours.iter_mut() {
+      // Check starting and ending points are equal.
       let start_point = *contour.points.first().unwrap();
       let end_point = *contour.points.last().unwrap();
+      eprintln!("start,end: {start_point:?}, {end_point:?}");
+      eprintln!("start==end: {:?}", start_point==end_point);
       if end_point != start_point {
         // If not then add a Line from the last point to the starting point.
         contour.edge_segments.push(EdgeSegment::Line);
         contour.points.push(start_point);
       }
+      // check if the first and last EdgeSegment form a sharp corner.
+      let len = contour.points.len();
+      let a = contour.points[len-1];
+      let b = contour.points[0];
+      let c = contour.points[(len>1) as usize];
+      if is_corner(a, b, c) {
+        contour.corners.push(0);
+      }
     }
+
     // Generate viewbox if it wasn't explicitly given.
     if self.viewbox == None {
       let points = &mut self
@@ -179,24 +331,21 @@ impl ShapeBuilder {
         .map(|contour| contour.points.iter())
         .flatten();
 
-      if let Some(Point {
-        x: mut left,
-        y: mut top,
-      }) = points.next()
+      if let Some(Point([mut left, mut top])) = points.next()
       {
         let (mut right, mut bottom) = (left, top);
         for point in points {
-          if point.x < left {
-            left = point.x;
+          if point.x() < left {
+            left = point.x();
           }
-          if point.x > right {
-            right = point.x;
+          if point.x() > right {
+            right = point.x();
           }
-          if point.y < top {
-            top = point.y;
+          if point.y() < top {
+            top = point.y();
           }
-          if point.y > bottom {
-            bottom = point.y;
+          if point.y() > bottom {
+            bottom = point.y();
           }
         }
         self.viewbox = Some(Box {
@@ -239,26 +388,26 @@ pub fn svg(shape: &Shape) -> String {
 
   for contour in shape.contours.iter() {
     let mut points = contour.points.iter();
-    // Starting coordinates.
     {
-      let Point { x, y } = points.next().unwrap();
+      // Starting coordinates.
+      let Point([x, y]) = points.next().unwrap();
       svg.push_str(&format!("M{x},{y} "));
     }
     for edge_segment in contour.edge_segments.iter() {
       match edge_segment {
         EdgeSegment::Line => {
-          let Point { x, y } = points.next().unwrap();
+          let Point([x, y]) = points.next().unwrap();
           svg.push_str(&format!("L{x},{y} "));
         },
         EdgeSegment::Quadratic => {
-          let Point { x: x1, y: y1 } = points.next().unwrap();
-          let Point { x, y } = points.next().unwrap();
+          let Point([x1, y1]) = points.next().unwrap();
+          let Point([x, y]) = points.next().unwrap();
           svg.push_str(&format!("Q{x1},{y1},{x},{y} "));
         },
         EdgeSegment::Cubic => {
-          let Point { x: x1, y: y1 } = points.next().unwrap();
-          let Point { x: x2, y: y2 } = points.next().unwrap();
-          let Point { x, y } = points.next().unwrap();
+          let Point([x1, y1]) = points.next().unwrap();
+          let Point([x2, y2]) = points.next().unwrap();
+          let Point([x, y]) = points.next().unwrap();
           svg.push_str(&format!("C{x1},{y1},{x2},{y2},{x},{y} "));
         },
       }

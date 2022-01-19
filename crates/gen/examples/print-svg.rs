@@ -39,6 +39,7 @@ fn main() {
       .line(21.0, 83.0)
       .line(40.0, 17.0)
       .line(61.0, 17.0)
+      .line(81.0, 83.0)
     .contour()
       .start(57.0, 58.0)
       .line(51.0, 30.0)
@@ -46,4 +47,15 @@ fn main() {
     .finalise();
 
   eprintln!("{}", shape_a.svg());
+
+  let myvec = vec![1,2,3,4,5];
+  eprintln!("{myvec:?}");
+
+  eprintln!("{:?}",shape_a.contours().iter().next().unwrap().corners());
+
+  // let circle_vec = shape::CircleVec::from_vec(myvec);
+  // eprintln!("{circle_vec:?}, i=0 {:?}, i=4 {:?}, i=7 {:?}",
+  //   circle_vec[0], circle_vec[4], circle_vec[7]);
+
+  // eprintln!("i=[0..3] {:?}", circle_vec[0..3]);
 }
