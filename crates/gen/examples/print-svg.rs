@@ -46,6 +46,24 @@ fn main() {
       .line(44.0, 58.0)
     .finalise();
 
+  #[rustfmt::skip]
+  let shape_b = Shape::build()
+    .viewbox(0.0, 100.0, 0.0, 100.0)
+    .contour()
+      .line(20.0, 20.0)
+      .line(40.0, 40.0)
+      .line(40.0, 10.0)
+    .finalise();
+
+  eprintln!("shape_b: {:?}", shape_b.contours());
+  eprintln!("shape_b corners: {:?}", shape_b.contours().iter().next().unwrap().corners());
+  eprintln!("{}", shape_b.svg());
+  eprintln!("shape_b splines:");
+  for spline in shape_b.contours().iter().next().unwrap().splines().into_iter() {
+    eprintln!("{:?}", spline);
+  }
+
+
   eprintln!("{}", shape_a.svg());
 
   let myvec = vec![1,2,3,4,5];

@@ -1,36 +1,4 @@
-use std::iter::Map;
-
 mod tests;
-
-// #[derive(Debug)]
-// pub struct CircleVec<T> {
-//   vec:Vec<T>
-// }
-
-// impl<'a, T> CircleVec<T>
-// where T: 'a {
-//   pub fn from_vec(vec: Vec<T>) -> Self {
-//     Self { vec }
-//   }
-// }
-
-// impl<'a, T> std::ops::Index<usize> for CircleVec<T>
-// where T: 'a {
-//   type Output = T;
-
-//   fn index(&self, index: usize) -> &Self::Output {
-//     &self.vec[index % self.vec.len()]
-//   }
-// }
-
-// unsafe impl<'a, T> std::slice::SliceIndex<usize> for CircleVec<T>
-// where T: 'a {
-//   type Output = T;
-
-//   fn index(&self, range: std::ops::Range<usize>) {
-//     //&self.vec[index % self.vec.len()]
-//   }
-// }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Point<T: Copy>([T; 2]);
@@ -50,7 +18,7 @@ struct Box<T> {
 }
 
 #[derive(Debug)]
-enum EdgeSegment {
+pub enum EdgeSegment {
   Line,
   Quadratic,
   Cubic,
@@ -58,76 +26,124 @@ enum EdgeSegment {
 
 #[derive(Debug)]
 pub struct Contour {
-  edge_segments: Vec<EdgeSegment>,
-  corners: Vec<usize>,
-  // // edges: Vec<Ranges>, views into groups of edge_segments that form one contiguous smooth edge.
-  // corners: Vec<usize> // indices into edge_segments, denotes a sharp corner after the segment.
-  // then we can call a `edges()/splines() -> iter(T)` method (chain two slice iterators if crosses
-  // boundary).
   points: Vec<Point<f32>>,
+  edge_segments: Vec<EdgeSegment>,
+  corners: Vec<(usize, usize)>, // (points index, edge_segments index)
 }
 impl Contour {
   pub fn corners(&self) -> Vec<Point<f32>> {
-    self.corners.iter().map(|&idx| { self.points[idx] }).collect()
+    self.corners.iter().map(|&(point_index, _edge_index)| { self.points[point_index] }).collect()
+  }
+  /// Iterator over splines comprising of (edge_segments[..], points[..]).
+  pub fn splines(&self) -> SplineIterator {
+    let (mut is_fully_smooth, mut return_to_start) = (false, false);
+    if self.corners.len() > 0 {
+      is_fully_smooth = true;
+      return_to_start = self.corners[0].0 > 0;
+    }
+    SplineIterator {
+      corner_idx: 0,
+      contour: &self,
+      is_fully_smooth,
+      return_to_start,
+    }
   }
 }
 
+pub struct SplineIterator<'a> {
+  corner_idx: usize,
+  contour: &'a Contour,
+  is_fully_smooth: bool,
+  return_to_start: bool,
+}
+impl<'a> Iterator for SplineIterator<'a> {
+  type Item = (&'a [EdgeSegment], &'a [Point<f32>]);
 
+  fn next(&mut self) -> Option<Self::Item> {
+    match self.is_fully_smooth {
+      true => {
+        if self.corner_idx == 0 {
+          self.corner_idx += 1;
+          Some((&self.contour.edge_segments[..], &self.contour.points[..]))
+        } else {
+          None
+        }
+      },
+      false => {
+        if self.corner_idx < self.contour.corners.len() {
+          let (point_start, edge_start) = self.contour.corners[self.corner_idx];
+          let (point_end, edge_end) = self.contour.corners[self.corner_idx+1];
+          self.corner_idx += 1;
+          Some((
+            &self.contour.edge_segments[point_start..point_end],
+            &self.contour.points[edge_start..edge_end],
+          ))
+        } else if self.return_to_start {
+          // TODO.
+          // - does this make sense?
+          // - should I wrap around with this or create a new vec to return a slice of?
+          // - why does this iterator return everything instead of splitting on corners in the
+          //   example?
+          None
+        } else {
+          None
+        }
+      },
+    }
+
+  }
+}
+
+/// The determinant of a 2 by 2 matrix.
 #[inline]
 fn det(m: [[f32; 2]; 2]) -> f32 {
-  // The determinant of a 2 by 2 matrix.
   m[0][0]*m[1][1] - m[0][1]*m[1][0]
 }
 
+/// The dot product of a pair of 2D vectors.
 #[inline]
 fn dot(a: [f32; 2], b: [f32; 2]) -> f32 {
-  // The dot product of a pair of 2D vectors.
   a[0]*b[0] + a[1]*b[1]
 }
 
+/// The magnitude of a 2D vector.
 #[inline]
 fn mag(a: [f32; 2]) -> f32 {
-  // The magnitude of a 2D vector.
   (a[0]*a[0] + a[1]*a[1]).sqrt()
 }
 
+/// The unit vector in the direction of a 2D vector.
 #[inline]
 fn normalize(a: [f32; 2]) -> [f32; 2] {
-  // The unit vector in the direction of a 2D vector.
   let mag_a = mag(a);
   [a[0]/mag_a, a[1]/mag_a]
 }
 
-
-const corner_threshold: f32 = 0.05; // approx 3 degrees.
-const cos_corner_threshold: f32 = 1.0-0.5*(corner_threshold*corner_threshold); //small angle approx
+const CORNER_THRESH: f32 = 0.05; // approx 3 degrees.
+/// Compare the vector A->B and B->C to see if there is a sharp corner at Point B.
+/// The const `CORNER_THRESH` is a small deflection (in radians) that will be permissible when
+/// considering whether the two vectors constitute a "straight" line.
 #[inline]
 fn is_corner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
-  // Compare the vector A->B and B->C to see if there is a sharp corner at Point B.
-  // The const `theta_threshold` is a small deflection (in radians) that will be permissible when
-  // considering whether the two vectors constitute a "straight" line.
-  let ab = [(b.x()-a.x()), (b.y()-a.y())];
-  let bc = [(c.x()-b.x()), (c.y()-b.y())];
-  // Check the angle between the two vectors is using the dot product:
-  // AB dot BC = |AB||BC|cos(theta).
-  // => (AB dot BC)/|AB||BC|  =  1 - (theta^2)/2, as theta -> 0, and
-  //   -(AB dot BC)/|AB||BC|  =  1 - (theta^2)/2, as theta -> pi.
-  let lhs = dot(ab, bc)/(mag(ab)*mag(bc));
-  // return false if the two vectors are not both almost parallel and in the same direction.
-  return !(
-    lhs.abs() >= cos_corner_threshold // parallel.
-    && lhs >= 0.0 // codirectional (angle is less than pi/2).
-  )
-}
-#[inline]
-fn iscorner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
   let ab = [(b.x()-a.x()), (b.y()-a.y())];
   let bc = [(c.x()-b.x()), (c.y()-b.y())];
   // return false if the two vectors are not both almost parallel and in the same direction.
   return !(
     dot(ab, bc) > 0.0
-    && det([ab, bc])/(mag(ab)*mag(bc)) <= corner_threshold
+    && det([ab, bc])/(mag(ab)*mag(bc)) <= CORNER_THRESH
   )
+  // Can also do this with which is very slightly less work
+  // AB dot BC = |AB||BC|cos(theta).
+  // => (AB dot BC)/|AB||BC|  =  1 - (theta^2)/2, as theta -> 0, and
+  //   -(AB dot BC)/|AB||BC|  =  1 - (theta^2)/2, as theta -> pi.
+  // ```rust
+  // let lhs = dot(ab, bc)/(mag(ab)*mag(bc));
+  // const COS_CORNER_THRESH: f32 = 1.0-0.5*(CORNER_THRESH*CORNER_THRESH); //small angle approx
+  // return !(
+  //   lhs.abs() >= COS_CORNER_THRESH // parallel.
+  //   && lhs >= 0.0                     // codirectional (angle is less than pi/2).
+  // )
+  // ```
 }
 
 #[derive(Debug)]
@@ -142,6 +158,8 @@ impl Shape {
     ShapeBuilder::new()
   }
 
+  /// Returns a vec of Contours comprising the Shape.
+  // TODO: this should be  ContourIterator
   pub fn contours(&self) -> &Vec<Contour> {
     &self.contours
   }
@@ -192,8 +210,7 @@ impl ShapeBuilder {
     self
   }
 
-  //TODO corner adding algorithms adds corners when there's only 1 edge_segment. should skip first
-  // check.
+  //TODO add example with smooth splines to check corner checking works.
 
   /// Create a new Contour.
   pub fn contour(mut self) -> Self {
@@ -230,12 +247,14 @@ impl ShapeBuilder {
       ShapeBuilderState::Contour => {
         let contour = &mut self.shape.contours.last_mut().unwrap();
         // check if it's a sharp corner
-        let len = contour.points.len();
-        let a = contour.points[len-1- (len>1) as usize];
-        let b = contour.points[len-1];
         let c = Point([x, y]);
-        if is_corner(a, b, c) {
-          contour.corners.push(len-1)
+        let len = contour.points.len();
+        if len > 1 { // Skip the first corner since there's no (-1)th point until finalised.
+          let a = contour.points[len-2];
+          let b = contour.points[len-1];
+          if is_corner(a, b, c) {
+            contour.corners.push((len-1, contour.edge_segments.len()));
+          }
         }
         // Add line
         contour.edge_segments.push(EdgeSegment::Line);
@@ -255,12 +274,14 @@ impl ShapeBuilder {
       ShapeBuilderState::Contour => {
         let contour = &mut self.shape.contours.last_mut().unwrap();
         // check if it's a sharp corner
-        let len = contour.points.len();
-        let a = contour.points[len-1- (len>1) as usize];
-        let b = contour.points[len-1];
         let c = Point([x1, y1]);
-        if is_corner(a, b, c) {
-          contour.corners.push(len-1)
+        let len = contour.points.len();
+        if len > 1 { // Skip the first corner since there's no (-1)th point until finalised.
+          let a = contour.points[len-2];
+          let b = contour.points[len-1];
+          if is_corner(a, b, c) {
+            contour.corners.push((len-1, contour.edge_segments.len()));
+          }
         }
         // Add bezier
         contour.edge_segments.push(EdgeSegment::Quadratic);
@@ -281,12 +302,14 @@ impl ShapeBuilder {
       ShapeBuilderState::Contour => {
         let contour = &mut self.shape.contours.last_mut().unwrap();
         // check if it's a sharp corner
-        let len = contour.points.len();
-        let a = contour.points[len-1- (len>1) as usize];
-        let b = contour.points[len-1];
         let c = Point([x1, y1]);
-        if is_corner(a, b, c) {
-          contour.corners.push(len-1)
+        let len = contour.points.len();
+        if len > 1 { // Skip the first corner since there's no (-1)th point until finalised.
+          let a = contour.points[len-2];
+          let b = contour.points[len-1];
+          if is_corner(a, b, c) {
+            contour.corners.push((len-1, contour.edge_segments.len()));
+          }
         }
         // Add bezier
         contour.edge_segments.push(EdgeSegment::Cubic);
@@ -318,7 +341,7 @@ impl ShapeBuilder {
       let b = contour.points[0];
       let c = contour.points[(len>1) as usize];
       if is_corner(a, b, c) {
-        contour.corners.push(0);
+        contour.corners.push((0, 0));
       }
     }
 
