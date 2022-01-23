@@ -4,9 +4,13 @@ mod tests;
 pub struct Point<T: Copy>([T; 2]);
 impl<T: Copy> Point<T> {
   #[inline]
-  pub fn x(&self) -> T { self.0[0] }
+  pub fn x(&self) -> T {
+    self.0[0]
+  }
   #[inline]
-  pub fn y(&self) -> T { self.0[1] }
+  pub fn y(&self) -> T {
+    self.0[1]
+  }
 }
 
 #[derive(Debug)]
@@ -24,7 +28,11 @@ pub struct Contour {
 }
 impl Contour {
   pub fn corners(&self) -> Vec<Point<f32>> {
-    self.corners.iter().map(|&(point_index, _edge_index)| { self.points[point_index] }).collect()
+    self
+      .corners
+      .iter()
+      .map(|&(point_index, _edge_index)| self.points[point_index])
+      .collect()
   }
   /// Iterator over splines comprising of (edge_segments[..], points[..]).
   pub fn splines(&self) -> SplineIterator {
@@ -64,7 +72,7 @@ impl<'a> Iterator for SplineIterator<'a> {
       false => {
         if self.corner_idx < self.contour.corners.len() {
           let (point_start, edge_start) = self.contour.corners[self.corner_idx];
-          let (point_end, edge_end) = self.contour.corners[self.corner_idx+1];
+          let (point_end, edge_end) = self.contour.corners[self.corner_idx + 1];
           self.corner_idx += 1;
           Some((
             &self.contour.edge_segments[point_start..point_end],
@@ -278,9 +286,10 @@ fn cull_degenerate_contours(builder: &mut ShapeBuilder) {
 fn identify_corners(builder: &mut ShapeBuilder) {
   for contour in builder.shape.contours.iter_mut() {
     let mut points = contour.points.iter().enumerate();
-    let last = contour.points.len()-2; // get the previous to the first point
+
+    let last = contour.points.len() - 2; // get the previous to the first point
     let mut a = (last, &contour.points[last]);
-    let mut b = points.next().unwrap();
+    let mut b = points.next().unwrap(); // the first point
     let mut c;
 
     for edge in contour.edge_segments.iter().enumerate() {
@@ -328,8 +337,7 @@ fn ensure_viewbox(builder: &mut ShapeBuilder) {
       .map(|contour| contour.points.iter())
       .flatten();
 
-    if let Some(Point([mut left, mut top])) = points.next()
-    {
+    if let Some(Point([mut left, mut top])) = points.next() {
       let (mut right, mut bottom) = (left, top);
       for point in points {
         if point.x() < left {
@@ -415,7 +423,11 @@ pub fn svg(shape: &Shape, draw_corners: bool) -> String {
     for contour in shape.contours.iter() {
       for (corner, _) in contour.corners.iter() {
         let point = contour.points[*corner];
-        svg.push_str(&format!("<circle cx='{:?}' fill='red' cy='{:?}' r='2'/>", point.x(), point.y()));
+        svg.push_str(&format!(
+          "<circle cx='{:?}' fill='red' cy='{:?}' r='2'/>",
+          point.x(),
+          point.y()
+        ));
       }
     }
   }
@@ -424,28 +436,30 @@ pub fn svg(shape: &Shape, draw_corners: bool) -> String {
 }
 
 /// The determinant of a 2 by 2 matrix.
+/// Computes the oriented area of the parallelogram formed by the pair of vectors that constitute
+/// the rows of the matrix.
 #[inline]
 fn det(m: [[f32; 2]; 2]) -> f32 {
-  m[0][0]*m[1][1] - m[0][1]*m[1][0]
+  m[0][0] * m[1][1] - m[0][1] * m[1][0]
 }
 
 /// The dot product of a pair of 2D vectors.
 #[inline]
 fn dot(a: [f32; 2], b: [f32; 2]) -> f32 {
-  a[0]*b[0] + a[1]*b[1]
+  a[0] * b[0] + a[1] * b[1]
 }
 
 /// The magnitude of a 2D vector.
 #[inline]
 fn mag(a: [f32; 2]) -> f32 {
-  (a[0]*a[0] + a[1]*a[1]).sqrt()
+  (a[0] * a[0] + a[1] * a[1]).sqrt()
 }
 
 /// The unit vector in the direction of a 2D vector.
 #[inline]
 fn normalize(a: [f32; 2]) -> [f32; 2] {
   let mag_a = mag(a);
-  [a[0]/mag_a, a[1]/mag_a]
+  [a[0] / mag_a, a[1] / mag_a]
 }
 
 const CORNER_THRESH: f32 = 0.05; // approx 3 degrees.
@@ -454,11 +468,12 @@ const CORNER_THRESH: f32 = 0.05; // approx 3 degrees.
 /// considering whether the two vectors constitute a "straight" line.
 #[inline]
 fn is_corner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
-  let ab = [(b.x()-a.x()), (b.y()-a.y())];
-  let bc = [(c.x()-b.x()), (c.y()-b.y())];
+  let ab = [(b.x() - a.x()), (b.y() - a.y())];
+  let bc = [(c.x() - b.x()), (c.y() - b.y())];
   // return false if the two vectors are not both almost parallel and in the same direction.
+  #[rustfmt::skip]
   return !(
     dot(ab, bc) > 0.0
-    && (det([ab, bc])/(mag(ab)*mag(bc))).abs() <= CORNER_THRESH
-  )
+    && (det([ab, bc]) / (mag(ab) * mag(bc))).abs() <= CORNER_THRESH
+  );
 }
