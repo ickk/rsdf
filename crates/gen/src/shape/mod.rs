@@ -24,7 +24,7 @@ pub enum EdgeSegment {
 pub struct Contour {
   edge_segments: Vec<EdgeSegment>,
   points: Vec<Point<f32>>,
-  corners: Vec<(usize, usize)>, // (edge_segments index, points inde)
+  corners: Vec<(usize, usize)>, // (edge_segments index, points index)
 }
 impl Contour {
   // TODO: These could be iterators.
@@ -470,5 +470,5 @@ fn is_corner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
     && (det([ab, bc]) / (mag(ab) * mag(bc))).abs() <= CORNER_THRESH
   );
 }
-// Two other methos migth be to use just the dot product, or to normalise both vectors, then
+// Two other methods might be to use just the dot product, or to normalise both vectors, then
 // convert them into polar coordinates to check the deflection.
