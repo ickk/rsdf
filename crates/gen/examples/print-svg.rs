@@ -25,5 +25,16 @@ fn main() {
       .line(55.0, 45.0)
     .finalise();
 
-  eprintln!("{}", shape.svg(true));
+  eprintln!("{}\n", shape.svg(true));
+
+  eprintln!("corners:");
+  for corner in shape.contours().iter().next().unwrap().corners() {
+    eprintln!("  {corner:?}");
+  }
+
+  eprintln!("splines:");
+  for spline in shape.contours().iter().next().unwrap().splines() {
+    eprintln!("  {spline:?}");
+  }
+
 }

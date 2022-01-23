@@ -13,7 +13,7 @@ impl<T: Copy> Point<T> {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum EdgeSegment {
   Line,
   Quadratic,
@@ -27,6 +27,7 @@ pub struct Contour {
   corners: Vec<(usize, usize)>, // (points index, edge_segments index)
 }
 impl Contour {
+  // TODO: These could be iterators.
   pub fn corners(&self) -> Vec<Point<f32>> {
     self
       .corners
@@ -34,60 +35,29 @@ impl Contour {
       .map(|&(point_index, _edge_index)| self.points[point_index])
       .collect()
   }
-  /// Iterator over splines comprising of (edge_segments[..], points[..]).
-  pub fn splines(&self) -> SplineIterator {
-    let (mut is_fully_smooth, mut return_to_start) = (false, false);
-    if self.corners.len() > 0 {
-      is_fully_smooth = true;
-      return_to_start = self.corners[0].0 > 0;
-    }
-    SplineIterator {
-      corner_idx: 0,
-      contour: &self,
-      is_fully_smooth,
-      return_to_start,
-    }
-  }
-}
-
-pub struct SplineIterator<'a> {
-  corner_idx: usize,
-  contour: &'a Contour,
-  is_fully_smooth: bool,
-  return_to_start: bool,
-}
-impl<'a> Iterator for SplineIterator<'a> {
-  type Item = (&'a [EdgeSegment], &'a [Point<f32>]);
-
-  fn next(&mut self) -> Option<Self::Item> {
-    match self.is_fully_smooth {
-      true => {
-        if self.corner_idx == 0 {
-          self.corner_idx += 1;
-          Some((&self.contour.edge_segments[..], &self.contour.points[..]))
-        } else {
-          None
-        }
+  pub fn splines(&self) -> Vec<(&[Point<f32>], &[EdgeSegment])> {
+    match self.corners.len() {
+      0 => {
+        // The contour is fully smooth.
+        vec![(&self.points[..], &self.edge_segments[..])]
       },
-      false => {
-        if self.corner_idx < self.contour.corners.len() {
-          let (point_start, edge_start) = self.contour.corners[self.corner_idx];
-          let (point_end, edge_end) = self.contour.corners[self.corner_idx + 1];
-          self.corner_idx += 1;
-          Some((
-            &self.contour.edge_segments[point_start..point_end],
-            &self.contour.points[edge_start..edge_end],
-          ))
-        } else if self.return_to_start {
-          // TODO.
-          // - does this make sense?
-          // - should I wrap around with this or create a new vec to return a slice of?
-          // - why does this iterator return everything instead of splitting on corners in the
-          //   example?
-          None
-        } else {
-          None
-        }
+      _ => {
+        // Split contour up on each corner.
+        let mut corners = self.corners.iter();
+        let first = corners.next().unwrap();
+        let mut acc = corners.fold((vec![], first.0, first.1), |mut acc, corner| {
+          acc.0.push((
+            &self.points[acc.1..=corner.0],
+            &self.edge_segments[acc.2..corner.1],
+          ));
+          acc.1 = corner.0;
+          acc.2 = corner.1;
+          acc
+        });
+        acc
+          .0
+          .push((&self.points[acc.1..], &self.edge_segments[acc.2..]));
+        acc.0
       },
     }
   }
@@ -261,11 +231,35 @@ impl ShapeBuilder {
     // Identify sharp corners in each contours.
     identify_corners(&mut self);
 
+    // Rearrange so that there's a corner at index zero (if there are any corners).
+    rearrange(&mut self);
+
     // Generate viewbox if it wasn't explicitly given.
     ensure_viewbox(&mut self);
     self.shape.viewbox = self.viewbox.unwrap();
 
     self.shape
+  }
+}
+
+/// If there's at least one corner, ensure that there's a corner at index 0.
+fn rearrange(builder: &mut ShapeBuilder) {
+  for contour in builder.shape.contours.iter_mut() {
+    if contour.corners.len() > 0 {
+      let offset = contour.corners[0];
+      contour.corners.iter_mut().for_each(|(p, e)| {
+        *p -= offset.0;
+        *e -= offset.1;
+      });
+      let points = [&contour.points[offset.0..], &contour.points[..offset.0]].concat();
+      let segments = [
+        &contour.edge_segments[offset.1..],
+        &contour.edge_segments[..offset.1],
+      ]
+      .concat();
+      contour.points = points;
+      contour.edge_segments = segments;
+    }
   }
 }
 
@@ -477,3 +471,5 @@ fn is_corner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
     && (det([ab, bc]) / (mag(ab) * mag(bc))).abs() <= CORNER_THRESH
   );
 }
+// Two other methos migth be to use just the dot product, or to normalise both vectors, then
+// convert them into polar coordinates to check the deflection.
