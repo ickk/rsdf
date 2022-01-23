@@ -22,9 +22,9 @@ pub enum EdgeSegment {
 
 #[derive(Debug)]
 pub struct Contour {
-  points: Vec<Point<f32>>,
   edge_segments: Vec<EdgeSegment>,
-  corners: Vec<(usize, usize)>, // (points index, edge_segments index)
+  points: Vec<Point<f32>>,
+  corners: Vec<(usize, usize)>, // (edge_segments index, points inde)
 }
 impl Contour {
   // TODO: These could be iterators.
@@ -32,32 +32,32 @@ impl Contour {
     self
       .corners
       .iter()
-      .map(|&(point_index, _edge_index)| self.points[point_index])
+      .map(|&(_edge_index, point_index)| self.points[point_index])
       .collect()
   }
-  pub fn splines(&self) -> Vec<(&[Point<f32>], &[EdgeSegment])> {
+  pub fn splines(&self) -> Vec<(&[EdgeSegment], &[Point<f32>])> {
     match self.corners.len() {
       0 => {
         // The contour is fully smooth.
-        vec![(&self.points[..], &self.edge_segments[..])]
+        vec![(&self.edge_segments[..], &self.points[..])]
       },
       _ => {
         // Split contour up on each corner.
         let mut corners = self.corners.iter();
         let first = corners.next().unwrap();
-        let mut acc = corners.fold((vec![], first.0, first.1), |mut acc, corner| {
-          acc.0.push((
-            &self.points[acc.1..=corner.0],
-            &self.edge_segments[acc.2..corner.1],
+        let mut acc = corners.fold((first.0, first.1, vec![]), |mut acc, corner| {
+          acc.2.push((
+            &self.edge_segments[acc.0..corner.0],
+            &self.points[acc.1..=corner.1],
           ));
-          acc.1 = corner.0;
-          acc.2 = corner.1;
+          acc.0 = corner.0;
+          acc.1 = corner.1;
           acc
         });
         acc
-          .0
-          .push((&self.points[acc.1..], &self.edge_segments[acc.2..]));
-        acc.0
+          .2
+          .push((&self.edge_segments[acc.0..], &self.points[acc.1..]));
+        acc.2
       },
     }
   }
@@ -141,7 +141,7 @@ impl ShapeBuilder {
     self
   }
 
-  //TODO add example with smooth splines to check corner checking works.
+  // TODO: add example with smooth splines to check corner checking works.
 
   /// Create a new Contour.
   pub fn contour(mut self) -> Self {
@@ -247,16 +247,15 @@ fn rearrange(builder: &mut ShapeBuilder) {
   for contour in builder.shape.contours.iter_mut() {
     if contour.corners.len() > 0 {
       let offset = contour.corners[0];
-      contour.corners.iter_mut().for_each(|(p, e)| {
-        *p -= offset.0;
-        *e -= offset.1;
+      contour.corners.iter_mut().for_each(|(e, p)| {
+        *e -= offset.0;
+        *p -= offset.1;
       });
-      let points = [&contour.points[offset.0..], &contour.points[..offset.0]].concat();
       let segments = [
-        &contour.edge_segments[offset.1..],
-        &contour.edge_segments[..offset.1],
-      ]
-      .concat();
+        &contour.edge_segments[offset.0..],
+        &contour.edge_segments[..offset.0],
+      ].concat();
+      let points = [&contour.points[offset.1..], &contour.points[..offset.1]].concat();
       contour.points = points;
       contour.edge_segments = segments;
     }
@@ -289,7 +288,7 @@ fn identify_corners(builder: &mut ShapeBuilder) {
     for edge in contour.edge_segments.iter().enumerate() {
       c = points.next().unwrap();
       if is_corner(*a.1, *b.1, *c.1) {
-        contour.corners.push((b.0, edge.0)); // (points index, edge_segments index)
+        contour.corners.push((edge.0, b.0)); // (edge_segments index, points index)
       }
       // find the relevant points for the next iteration of the loop
       match edge.1 {
