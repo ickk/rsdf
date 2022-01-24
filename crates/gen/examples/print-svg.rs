@@ -36,5 +36,12 @@ fn main() {
   for spline in shape.contours().iter().next().unwrap().splines() {
     eprintln!("  {spline:?}");
   }
+  eprintln!("");
+
+  let coloured_shape = colour(shape);
+
+  eprintln!("coloured_shape: {coloured_shape:?}\n");
+
+  eprintln!("colours: {:?}\n", coloured_shape.svg());
 
 }

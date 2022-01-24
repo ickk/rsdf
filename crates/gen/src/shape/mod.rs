@@ -1,4 +1,6 @@
 mod tests;
+mod svg;
+mod math;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Point<T: Copy>([T; 2]);
@@ -22,9 +24,9 @@ pub enum EdgeSegment {
 
 #[derive(Debug)]
 pub struct Contour {
-  edge_segments: Vec<EdgeSegment>,
-  points: Vec<Point<f32>>,
-  corners: Vec<(usize, usize)>, // (edge_segments index, points index)
+  pub(crate) edge_segments: Vec<EdgeSegment>,
+  pub(crate) points: Vec<Point<f32>>,
+  pub(crate) corners: Vec<(usize, usize)>, // (edge_segments index, points index)
 }
 impl Contour {
   // TODO: These could be iterators.
@@ -69,14 +71,6 @@ pub struct Shape {
   viewbox: Box<f32>,
 }
 
-#[derive(Debug, PartialEq)]
-struct Box<T> {
-  left: T,
-  right: T,
-  top: T,
-  bottom: T,
-}
-
 impl Shape {
   /// Returns a ShapeBuilder.
   pub fn build() -> ShapeBuilder {
@@ -91,20 +85,16 @@ impl Shape {
 
   /// Returns an SVG representation of the Shape.
   pub fn svg(&self, draw_corners: bool) -> String {
-    svg(self, draw_corners)
+    svg::svg(self, draw_corners)
   }
+
+  // TODO: Output Chlumsky's textual shape description format
 }
 
 pub struct ShapeBuilder {
   state: ShapeBuilderState,
   shape: Shape,
   viewbox: Option<Box<f32>>,
-}
-
-impl Default for ShapeBuilder {
-  fn default() -> Self {
-    Self::new()
-  }
 }
 
 #[derive(PartialEq)]
@@ -287,7 +277,7 @@ fn identify_corners(builder: &mut ShapeBuilder) {
 
     for edge in contour.edge_segments.iter().enumerate() {
       c = points.next().unwrap();
-      if is_corner(*a.1, *b.1, *c.1) {
+      if math::is_corner(*a.1, *b.1, *c.1) {
         contour.corners.push((edge.0, b.0)); // (edge_segments index, points index)
       }
       // find the relevant points for the next iteration of the loop
@@ -363,112 +353,16 @@ fn ensure_viewbox(builder: &mut ShapeBuilder) {
   }
 }
 
-/// Generate an SVG from a Shape.
-pub fn svg(shape: &Shape, draw_corners: bool) -> String {
-  let mut svg = String::new();
-
-  let viewbox = &shape.viewbox;
-  let (width, height) = (viewbox.right - viewbox.left, viewbox.bottom - viewbox.top);
-  svg.push_str(&format!(
-    "<svg width='{width}' height='{height}' \
-            viewBox='{x_min} {y_min} {width} {height}' \
-            fill-rule='nonzero' \
-            xmlns='http://www.w3.org/2000/svg'>",
-    x_min = viewbox.left,
-    y_min = viewbox.top,
-  ));
-  svg.push_str("<path d='");
-  let svg_base_len = svg.len();
-
-  for contour in shape.contours.iter() {
-    let mut points = contour.points.iter();
-    {
-      // Starting coordinates.
-      let Point([x, y]) = points.next().unwrap();
-      svg.push_str(&format!("M{x},{y} "));
-    }
-    for edge_segment in contour.edge_segments.iter() {
-      match edge_segment {
-        EdgeSegment::Line => {
-          let Point([x, y]) = points.next().unwrap();
-          svg.push_str(&format!("L{x},{y} "));
-        },
-        EdgeSegment::Quadratic => {
-          let Point([x1, y1]) = points.next().unwrap();
-          let Point([x, y]) = points.next().unwrap();
-          svg.push_str(&format!("Q{x1},{y1},{x},{y} "));
-        },
-        EdgeSegment::Cubic => {
-          let Point([x1, y1]) = points.next().unwrap();
-          let Point([x2, y2]) = points.next().unwrap();
-          let Point([x, y]) = points.next().unwrap();
-          svg.push_str(&format!("C{x1},{y1},{x2},{y2},{x},{y} "));
-        },
-      }
-    }
+impl Default for ShapeBuilder {
+  fn default() -> Self {
+    Self::new()
   }
-  if svg.len() > svg_base_len {
-    svg.pop(); // Get rid of trailing whitespace.
-  }
-  svg.push_str("'/>");
-  // Draw red circles at sharp corners.
-  if draw_corners {
-    for contour in shape.contours.iter() {
-      for (corner, _) in contour.corners.iter() {
-        let point = contour.points[*corner];
-        svg.push_str(&format!(
-          "<circle cx='{:?}' fill='red' cy='{:?}' r='2'/>",
-          point.x(),
-          point.y()
-        ));
-      }
-    }
-  }
-  svg.push_str("</svg>");
-  svg
 }
 
-/// The determinant of a 2 by 2 matrix.
-/// Computes the oriented area of the parallelogram formed by the pair of vectors that constitute
-/// the rows of the matrix.
-#[inline]
-fn det(m: [[f32; 2]; 2]) -> f32 {
-  m[0][0] * m[1][1] - m[0][1] * m[1][0]
+#[derive(Debug, PartialEq)]
+struct Box<T> {
+  left: T,
+  right: T,
+  top: T,
+  bottom: T,
 }
-
-/// The dot product of a pair of 2D vectors.
-#[inline]
-fn dot(a: [f32; 2], b: [f32; 2]) -> f32 {
-  a[0] * b[0] + a[1] * b[1]
-}
-
-/// The magnitude of a 2D vector.
-#[inline]
-fn mag(a: [f32; 2]) -> f32 {
-  (a[0] * a[0] + a[1] * a[1]).sqrt()
-}
-
-/// The unit vector in the direction of a 2D vector.
-#[inline]
-fn normalize(a: [f32; 2]) -> [f32; 2] {
-  let mag_a = mag(a);
-  [a[0] / mag_a, a[1] / mag_a]
-}
-
-const CORNER_THRESH: f32 = 0.05; // approx 3 degrees.
-/// Compare the vector A->B and B->C to see if there is a sharp corner at Point B.
-/// The const `CORNER_THRESH` is a small deflection (in radians) that will be permissible when
-/// considering whether the two vectors constitute a "straight" line.
-#[inline]
-fn is_corner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
-  let ab = [(b.x() - a.x()), (b.y() - a.y())];
-  let bc = [(c.x() - b.x()), (c.y() - b.y())];
-  // return false if the two vectors are not both almost parallel and in the same direction.
-  #[rustfmt::skip]
-  return !(
-    dot(ab, bc) > 0.0
-    && (det([ab, bc]) / (mag(ab) * mag(bc))).abs() <= CORNER_THRESH
-  );
-}
-// Two other methods might be to use just the dot product, or to normalise both vectors, then
-// convert them into polar coordinates to check the deflection.
