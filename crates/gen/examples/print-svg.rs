@@ -3,6 +3,7 @@ use sdf_gen::*;
 fn main() {
   #[rustfmt::skip]
   let shape = Shape::build()
+    .viewbox(-5.0, 105.0, -5.0, 205.0)
     .contour()
       .line(100.0, 0.0)
       .line(100.0, 200.0)
@@ -25,23 +26,24 @@ fn main() {
       .line(55.0, 45.0)
     .finalise();
 
+  eprintln!("{}\n", shape.svg(false));
   eprintln!("{}\n", shape.svg(true));
 
-  eprintln!("corners:");
-  for corner in shape.contours().iter().next().unwrap().corners() {
-    eprintln!("  {corner:?}");
-  }
+  // eprintln!("corners:");
+  // for corner in shape.contours().iter().next().unwrap().corners() {
+  //   eprintln!("  {corner:?}");
+  // }
 
-  eprintln!("splines:");
-  for spline in shape.contours().iter().next().unwrap().splines() {
-    eprintln!("  {spline:?}");
-  }
-  eprintln!("");
+  // eprintln!("splines:");
+  // for spline in shape.contours().iter().next().unwrap().splines() {
+  //   eprintln!("  {spline:?}");
+  // }
+  // eprintln!("");
 
-  let coloured_shape = colour(shape);
+  let coloured_shape = ColouredShape::from_shape(shape);
 
-  eprintln!("coloured_shape: {coloured_shape:?}\n");
+  // eprintln!("coloured_shape: {coloured_shape:?}\n");
 
-  eprintln!("colours: {:?}\n", coloured_shape.svg());
+  eprintln!("{}\n", coloured_shape.svg());
 
 }

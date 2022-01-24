@@ -3,7 +3,7 @@ mod svg;
 mod math;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Point<T: Copy>([T; 2]);
+pub struct Point<T: Copy>(pub(crate) [T; 2]);
 impl<T: Copy> Point<T> {
   #[inline]
   pub fn x(&self) -> T {
@@ -68,7 +68,7 @@ impl Contour {
 #[derive(Debug)]
 pub struct Shape {
   contours: Vec<Contour>,
-  viewbox: Box<f32>,
+  pub(crate) viewbox: Box<f32>,
 }
 
 impl Shape {
@@ -360,9 +360,9 @@ impl Default for ShapeBuilder {
 }
 
 #[derive(Debug, PartialEq)]
-struct Box<T> {
-  left: T,
-  right: T,
-  top: T,
-  bottom: T,
+pub struct Box<T> {
+  pub left: T,
+  pub right: T,
+  pub top: T,
+  pub bottom: T,
 }

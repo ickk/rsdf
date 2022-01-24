@@ -51,8 +51,8 @@ pub fn svg(shape: &Shape, draw_corners: bool) -> String {
   // Draw red circles at sharp corners.
   if draw_corners {
     for contour in shape.contours.iter() {
-      for (corner, _) in contour.corners.iter() {
-        let point = contour.points[*corner];
+      for (_, corner_point) in contour.corners.iter() {
+        let point = contour.points[*corner_point];
         svg.push_str(&format!(
           "<circle cx='{:?}' fill='red' cy='{:?}' r='2'/>",
           point.x(),
