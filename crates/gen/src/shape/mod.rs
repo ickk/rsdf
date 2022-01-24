@@ -1,6 +1,6 @@
-mod tests;
-mod svg;
 mod math;
+mod svg;
+mod tests;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Point<T: Copy>(pub(crate) [T; 2]);
@@ -244,7 +244,8 @@ fn rearrange(builder: &mut ShapeBuilder) {
       let segments = [
         &contour.edge_segments[offset.0..],
         &contour.edge_segments[..offset.0],
-      ].concat();
+      ]
+      .concat();
       let points = [&contour.points[offset.1..], &contour.points[..offset.1]].concat();
       contour.points = points;
       contour.edge_segments = segments;

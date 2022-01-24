@@ -1,10 +1,7 @@
 pub mod colour;
 
 use crate::shape::*;
-use colour::{
-  Colour,
-  SplineColour,
-};
+use colour::{Colour, SplineColour};
 
 #[derive(Debug)]
 pub struct ColouredShape {
