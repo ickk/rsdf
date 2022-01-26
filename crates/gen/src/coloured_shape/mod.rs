@@ -1,7 +1,7 @@
-pub mod colour;
+pub mod spline_colour;
 
 use crate::shape::*;
-use colour::{Colour, SplineColour};
+use spline_colour::*;
 
 #[derive(Debug)]
 pub struct ColouredShape {
@@ -56,10 +56,6 @@ impl ColouredShape {
     unimplemented!()
   }
 }
-
-const WHITE: SplineColour = SplineColour::from_colour(Colour::White);
-const MAGENTA: SplineColour = SplineColour::from_colour(Colour::Magenta);
-const YELLOW: SplineColour = SplineColour::from_colour(Colour::Yellow);
 
 fn svg(coloured_shape: &ColouredShape) -> String {
   let mut svg = String::new();

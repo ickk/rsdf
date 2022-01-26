@@ -3,6 +3,10 @@ pub struct SplineColour {
   inner: u8,
 }
 
+pub const WHITE: SplineColour = SplineColour::from_colour(Colour::White);
+pub const MAGENTA: SplineColour = SplineColour::from_colour(Colour::Magenta);
+pub const YELLOW: SplineColour = SplineColour::from_colour(Colour::Yellow);
+
 impl SplineColour {
   pub const fn from_colour(colour: Colour) -> Self {
     match colour {
@@ -17,7 +21,7 @@ impl SplineColour {
     }
   }
 
-  pub fn colour(&self) -> Colour {
+  pub const fn colour(&self) -> Colour {
     match self.inner {
       0b100 => Colour::Red,
       0b110 => Colour::Yellow,
