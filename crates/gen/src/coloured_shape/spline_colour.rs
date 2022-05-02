@@ -8,16 +8,17 @@ pub const MAGENTA: SplineColour = SplineColour::from_colour(Colour::Magenta);
 pub const YELLOW: SplineColour = SplineColour::from_colour(Colour::Yellow);
 
 impl SplineColour {
+  #[rustfmt::skip]
   pub const fn from_colour(colour: Colour) -> Self {
     match colour {
-      Colour::Red => Self { inner: 0b100 },
-      Colour::Yellow => Self { inner: 0b110 },
-      Colour::Green => Self { inner: 0b010 },
-      Colour::Cyan => Self { inner: 0b011 },
-      Colour::Blue => Self { inner: 0b001 },
+      Colour::Red     => Self { inner: 0b100 },
+      Colour::Yellow  => Self { inner: 0b110 },
+      Colour::Green   => Self { inner: 0b010 },
+      Colour::Cyan    => Self { inner: 0b011 },
+      Colour::Blue    => Self { inner: 0b001 },
       Colour::Magenta => Self { inner: 0b101 },
-      Colour::White => Self { inner: 0b111 },
-      Colour::Black => Self { inner: 0b000 },
+      Colour::White   => Self { inner: 0b111 },
+      Colour::Black   => Self { inner: 0b000 },
     }
   }
 
@@ -37,6 +38,7 @@ impl SplineColour {
 }
 
 impl std::ops::BitXorAssign for SplineColour {
+  #[inline]
   fn bitxor_assign(&mut self, rhs: Self) {
     self.inner ^= rhs.inner
   }

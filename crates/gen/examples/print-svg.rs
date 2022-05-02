@@ -45,4 +45,6 @@ fn main() {
   // eprintln!("coloured_shape: {coloured_shape:?}\n");
 
   eprintln!("{}\n", coloured_shape.svg());
+
+  do_thing()
 }

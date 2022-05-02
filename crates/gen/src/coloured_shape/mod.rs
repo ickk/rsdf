@@ -10,7 +10,23 @@ pub struct ColouredShape {
   colours: Vec<Vec<SplineColour>>,
 }
 
-pub fn colour_shape(shape: Shape) -> ColouredShape {
+impl ColouredShape {
+  pub fn from_shape(shape: Shape) -> Self {
+    colour_shape(shape)
+  }
+  pub fn svg(&self) -> String {
+    svg::svg(self)
+  }
+  fn _splines(&self) -> () {
+    // TODO: I think this requires zip, which is nightly-only :(
+    unimplemented!()
+  }
+  pub fn contours(&self) -> &Vec<Contour> {
+    self.shape.contours()
+  }
+}
+
+fn colour_shape(shape: Shape) -> ColouredShape {
   let mut shape_colours: Vec<Vec<SplineColour>> = vec![];
 
   for contour in shape.contours() {
@@ -44,17 +60,3 @@ pub fn colour_shape(shape: Shape) -> ColouredShape {
     colours: shape_colours,
   }
 }
-
-impl ColouredShape {
-  pub fn from_shape(shape: Shape) -> Self {
-    colour_shape(shape)
-  }
-  pub fn svg(&self) -> String {
-    svg::svg(self)
-  }
-  fn _splines(&self) -> () {
-    // TODO: I think this requires zip, which is nightly-only :(
-    unimplemented!()
-  }
-}
-
