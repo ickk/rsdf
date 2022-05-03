@@ -26,7 +26,7 @@ pub enum EdgeSegment {
 pub struct Contour {
   pub(crate) edge_segments: Vec<EdgeSegment>,
   pub(crate) points: Vec<Point<f32>>,
-  pub(crate) corners: Vec<(usize, usize)>, // (edge_segments index, points index)
+  pub(crate) corners: Vec<(usize /*edge_segments index*/, usize /*points index*/)>,
 }
 impl Contour {
   pub fn corners(&self) -> impl Iterator<Item = Point<f32>> + '_ {
