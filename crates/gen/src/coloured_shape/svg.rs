@@ -28,7 +28,7 @@ pub(super) fn svg(coloured_shape: &ColouredShape) -> String {
   str_yellow.push_str("<path stroke='yellow' d='");
 
   let mut contours_colours = coloured_shape.colours.iter();
-  for contour in shape.contours().iter() {
+  for contour in shape.contours() {
     let mut colours = contours_colours.next().unwrap().iter();
 
     for (segments, points) in contour.splines() {

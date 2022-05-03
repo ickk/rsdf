@@ -30,7 +30,7 @@ impl ColouredShape {
     svg::svg(self)
   }
   pub fn contours(&self) -> impl Iterator<Item = ColouredContour> {
-    self.shape.contours().iter().zip(self.colours.iter())
+    self.shape.contours().zip(self.colours.iter())
       .map(|(contour, colours)| {
         ColouredContour { contour, colours }
       })

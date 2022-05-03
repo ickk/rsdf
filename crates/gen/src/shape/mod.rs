@@ -78,8 +78,8 @@ impl Shape {
 
   /// Returns a vec of Contours comprising the Shape.
   /// TODO: could turn this into a lazy iterator.
-  pub fn contours(&self) -> &Vec<Contour> {
-    &self.contours
+  pub fn contours(&self) -> impl Iterator<Item = &Contour> {
+    self.contours.iter()
   }
 
   /// Returns an SVG representation of the Shape.
