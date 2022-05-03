@@ -19,7 +19,7 @@ pub struct ColouredContour<'a> {
 #[derive(Debug)]
 pub struct ColouredSpline<'a> {
   spline: (&'a [EdgeSegment], &'a [Point<f32>]),
-  colours: &'a SplineColour,
+  colour: &'a SplineColour,
 }
 
 impl ColouredShape {
@@ -40,8 +40,8 @@ impl ColouredShape {
 impl ColouredContour<'_> {
   pub fn splines(&self) -> impl Iterator<Item = ColouredSpline> {
     self.contour.splines().into_iter().zip(self.colours.iter())
-      .map(|(spline, colours)| {
-        ColouredSpline { spline, colours }
+      .map(|(spline, colour)| {
+        ColouredSpline { spline, colour }
       })
   }
 }
