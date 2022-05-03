@@ -10,6 +10,18 @@ pub struct ColouredShape {
   colours: Vec<Vec<SplineColour>>,
 }
 
+#[derive(Debug)]
+pub struct ColouredContour<'a> {
+  contour: &'a Contour,
+  colours: &'a Vec<SplineColour>,
+}
+
+#[derive(Debug)]
+pub struct ColouredSpline<'a> {
+  spline: (&'a [EdgeSegment], &'a [Point<f32>]),
+  colours: &'a SplineColour,
+}
+
 impl ColouredShape {
   pub fn from_shape(shape: Shape) -> Self {
     colour_shape(shape)
@@ -17,12 +29,20 @@ impl ColouredShape {
   pub fn svg(&self) -> String {
     svg::svg(self)
   }
-  fn _splines(&self) -> () {
-    // TODO: I think this requires zip, which is nightly-only :(
-    unimplemented!()
+  pub fn contours(&self) -> impl Iterator<Item = ColouredContour> {
+    self.shape.contours().iter().zip(self.colours.iter())
+      .map(|(contour, colours)| {
+        ColouredContour { contour, colours }
+      })
   }
-  pub fn contours(&self) -> &Vec<Contour> {
-    self.shape.contours()
+}
+
+impl ColouredContour<'_> {
+  pub fn splines(&self) -> impl Iterator<Item = ColouredSpline> {
+    self.contour.splines().into_iter().zip(self.colours.iter())
+      .map(|(spline, colours)| {
+        ColouredSpline { spline, colours }
+      })
   }
 }
 

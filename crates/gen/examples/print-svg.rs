@@ -40,11 +40,25 @@ fn main() {
   // }
   // eprintln!("");
 
+  println!("!!!");
   let coloured_shape = ColouredShape::from_shape(shape);
+  for contour in coloured_shape.contours() {
+    println!("{:?}", contour);
+    for spline in contour.splines() {
+      println!("{:?}", spline);
+    }
+  }
+  println!("!!!");
 
   // eprintln!("coloured_shape: {coloured_shape:?}\n");
 
   eprintln!("{}\n", coloured_shape.svg());
+
+  let shape2 = Shape::build()
+    .contour()
+      .line(0.0, 0.0)
+
+    .finalise();
 
   do_thing()
 }

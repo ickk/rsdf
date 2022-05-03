@@ -29,14 +29,13 @@ pub struct Contour {
   pub(crate) corners: Vec<(usize, usize)>, // (edge_segments index, points index)
 }
 impl Contour {
-  // TODO: These could be iterators.
-  pub fn corners(&self) -> Vec<Point<f32>> {
+  pub fn corners(&self) -> impl Iterator<Item = Point<f32>> + '_ {
     self
       .corners
       .iter()
       .map(|&(_edge_index, point_index)| self.points[point_index])
-      .collect()
   }
+  // TODO: Could be an iterator.
   pub fn splines(&self) -> Vec<(&[EdgeSegment], &[Point<f32>])> {
     match self.corners.len() {
       0 => {
