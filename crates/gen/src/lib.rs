@@ -37,7 +37,6 @@ impl Image<'_> {
     }
   }
 
-  /// unenforced, but x should be less than width and y should be less than height.
   #[inline]
   fn set_pixel(&mut self, coords: [usize; 2], val: [u8; 3]) {
     debug_assert!(coords[0] < self.width && coords[1] < self.height,
