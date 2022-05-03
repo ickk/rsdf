@@ -77,7 +77,6 @@ impl Shape {
   }
 
   /// Returns a vec of Contours comprising the Shape.
-  /// TODO: could turn this into a lazy iterator.
   pub fn contours(&self) -> impl Iterator<Item = &Contour> {
     self.contours.iter()
   }
