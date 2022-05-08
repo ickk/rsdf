@@ -1,19 +1,7 @@
-mod math;
+use crate::math::{self, Point};
+
 mod svg;
 mod tests;
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Point<T: Copy>(pub(crate) [T; 2]);
-impl<T: Copy> Point<T> {
-  #[inline]
-  pub fn x(&self) -> T {
-    self.0[0]
-  }
-  #[inline]
-  pub fn y(&self) -> T {
-    self.0[1]
-  }
-}
 
 #[derive(Debug, Clone)]
 pub enum EdgeSegment {
@@ -35,6 +23,7 @@ impl Contour {
       .iter()
       .map(|&(_edge_index, point_index)| self.points[point_index])
   }
+
   // TODO: Could be an iterator.
   pub fn splines(&self) -> Vec<(&[EdgeSegment], &[Point<f32>])> {
     match self.corners.len() {
@@ -59,6 +48,26 @@ impl Contour {
           .2
           .push((&self.edge_segments[acc.0..], &self.points[acc.1..]));
         acc.2
+      },
+    }
+  }
+
+  pub fn get_spline(&self, index: usize) -> Option<(&[EdgeSegment], &[Point<f32>])> {
+    match self.corners.len() {
+      0 => Some((&self.edge_segments[..], &self.points[..])),
+      _ => {
+        // Due to call to `rearrange` in `ShapeBuilder::finalise`, if there is at least one corner
+        // then there will be a corner at (0,0). So if `corners.get(index+1)` fails then we can
+        // simply use the rest of the slice.
+        let corner_start = self.corners.get(index)?;
+        let corner_end = match self.corners.get(index+1) {
+          Some(corner) => *corner,
+          None => (self.edge_segments.len()-1, self.points.len()-1),
+        };
+        Some((
+          &self.edge_segments[corner_start.0..corner_end.0],
+          &self.points[corner_start.1..corner_end.1],
+        ))
       },
     }
   }
@@ -358,6 +367,7 @@ impl Default for ShapeBuilder {
   }
 }
 
+// TODO: I should really rename this..
 #[derive(Debug, PartialEq)]
 pub struct Box<T> {
   pub left: T,

@@ -1,6 +1,7 @@
 pub mod spline_colour;
 mod svg;
 
+use crate::math::Point;
 use crate::shape::*;
 use spline_colour::*;
 
@@ -43,6 +44,13 @@ impl ColouredContour<'_> {
       .map(|(spline, colour)| {
         ColouredSpline { spline, colour }
       })
+  }
+
+  pub fn get_spline(&self, index: usize) -> Option<ColouredSpline> {
+    Some(ColouredSpline {
+      spline: self.contour.get_spline(index)?,
+      colour: self.colours.get(index)?,
+    })
   }
 }
 

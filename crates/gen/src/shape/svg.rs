@@ -1,4 +1,5 @@
-use super::{EdgeSegment, Point, Shape};
+use super::{EdgeSegment, Shape};
+use crate::math::Point;
 
 /// Generate an SVG from a Shape.
 pub fn svg(shape: &Shape, draw_corners: bool) -> String {

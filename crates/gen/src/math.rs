@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use super::Point;
+// TODO: use `Point<f32>` type instead of `[f32; 2]` where possible.
 
 /// The determinant of a 2 by 2 matrix.
 /// Computes the oriented area of the parallelogram formed by the pair of vectors that constitute
@@ -46,3 +46,74 @@ pub fn is_corner(a: Point<f32>, b: Point<f32>, c: Point<f32>) -> bool {
 }
 // Two other methods might be to use just the dot product, or to normalise both vectors, then
 // convert them into polar coordinates to check the deflection.
+
+
+use std::ops::{Add, Sub, Mul, MulAssign};
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Point<T: Copy>(pub(crate) [T; 2]);
+
+impl<T: Copy + Mul> Point<T> {
+  #[inline]
+  pub fn x(&self) -> T {
+    self.0[0]
+  }
+  #[inline]
+  pub fn y(&self) -> T {
+    self.0[1]
+  }
+}
+
+impl<T> Sub for Point<T>
+where T: Copy + Sub<Output = T> {
+  type Output = Self;
+
+  fn sub(self, other: Self) -> Self::Output {
+    Self ([
+      self.0[0] - other.0[0],
+      self.0[1] - other.0[1],
+    ])
+  }
+}
+
+impl<T> Add for Point<T>
+where T: Copy + Add<Output = T> {
+  type Output = Self;
+
+  fn add(self, other: Self) -> Self::Output {
+    Self ([
+      self.0[0] + other.0[0],
+      self.0[1] + other.0[1],
+    ])
+  }
+}
+
+// TODO: Evaluate `num` crate to specify generics over number types
+impl Mul<f32> for Point<f32> {
+  type Output = Self;
+
+  fn mul(self, rhs: f32) -> Self::Output {
+    Self ([
+      self.0[0] * rhs,
+      self.0[1] * rhs,
+    ])
+  }
+}
+
+impl Mul<Point<f32>> for f32 {
+  type Output = Point<f32>;
+
+  fn mul(self, rhs: Point<f32>) -> Point<f32> {
+    Point ([
+      self * rhs.0[0],
+      self * rhs.0[1],
+    ])
+  }
+}
+
+impl Point<f32> {
+  pub fn abs(&self) -> f32 {
+    (self.0[0] * self.0[0] + self.0[1] * self.0[1]).sqrt()
+  }
+  // TODO: look into fast sqrt approx
+}
