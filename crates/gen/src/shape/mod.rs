@@ -66,7 +66,7 @@ impl Contour {
         };
         Some((
           &self.edge_segments[corner_start.0..corner_end.0],
-          &self.points[corner_start.1..corner_end.1],
+          &self.points[corner_start.1..=corner_end.1],
         ))
       },
     }
@@ -75,7 +75,7 @@ impl Contour {
 
 #[derive(Debug)]
 pub struct Shape {
-  contours: Vec<Contour>,
+  pub(crate) contours: Vec<Contour>,
   pub(crate) viewbox: Box<f32>,
 }
 

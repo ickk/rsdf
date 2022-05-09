@@ -1,5 +1,6 @@
-pub mod spline_colour;
 mod svg;
+#[rustfmt::skip]
+pub mod spline_colour;
 
 use crate::math::{self, Point};
 use crate::shape::*;
@@ -20,8 +21,8 @@ pub struct ColouredContour<'a> {
 
 #[derive(Debug)]
 pub struct ColouredSpline<'a> {
-  spline: (&'a [EdgeSegment], &'a [Point<f32>]),
-  colour: &'a SplineColour,
+  pub spline: (&'a [EdgeSegment], &'a [Point<f32>]),
+  pub colour: &'a SplineColour,
 }
 
 impl ColouredShape {
@@ -40,6 +41,13 @@ impl ColouredShape {
       .contours()
       .zip(self.colours.iter())
       .map(|(contour, colours)| ColouredContour { contour, colours })
+  }
+
+  pub fn get_contour(&self, index: usize) -> Option<ColouredContour> {
+    Some(ColouredContour {
+      contour: self.shape.contours.get(index)?,
+      colours: self.colours.get(index)?,
+    })
   }
 }
 

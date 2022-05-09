@@ -3,12 +3,16 @@ pub struct SplineColour {
   inner: u8,
 }
 
-pub const WHITE: SplineColour = SplineColour::from_colour(Colour::White);
+pub const WHITE:   SplineColour = SplineColour::from_colour(Colour::White);
+pub const BLACK:   SplineColour = SplineColour::from_colour(Colour::Black);
+pub const CYAN:    SplineColour = SplineColour::from_colour(Colour::Cyan);
 pub const MAGENTA: SplineColour = SplineColour::from_colour(Colour::Magenta);
-pub const YELLOW: SplineColour = SplineColour::from_colour(Colour::Yellow);
+pub const YELLOW:  SplineColour = SplineColour::from_colour(Colour::Yellow);
+pub const RED:     SplineColour = SplineColour::from_colour(Colour::Red);
+pub const GREEN:   SplineColour = SplineColour::from_colour(Colour::Green);
+pub const BLUE:    SplineColour = SplineColour::from_colour(Colour::Blue);
 
 impl SplineColour {
-  #[rustfmt::skip]
   pub const fn from_colour(colour: Colour) -> Self {
     match colour {
       Colour::Red     => Self { inner: 0b100 },
@@ -35,12 +39,25 @@ impl SplineColour {
       _ => unreachable!(), // Self can only be created from a Colour & the inner field is private.
     }
   }
+
+  pub fn as_bool(&self) -> bool {
+    self.inner != 0
+  }
 }
 
 impl std::ops::BitXorAssign for SplineColour {
   #[inline]
   fn bitxor_assign(&mut self, rhs: Self) {
     self.inner ^= rhs.inner
+  }
+}
+
+impl std::ops::BitXor for SplineColour {
+  type Output = Self;
+
+  #[inline]
+  fn bitxor(self, rhs: Self) -> Self {
+    SplineColour {inner: self.inner ^ rhs.inner}
   }
 }
 
