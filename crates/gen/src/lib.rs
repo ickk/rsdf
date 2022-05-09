@@ -75,10 +75,10 @@ pub fn do_thing() {
   let shape = Shape::build()
     .viewbox(0.0, 200.0, 0.0, 200.0)
     .contour()
-      .start(45.0, 145.0)
-      .line(45.0, 155.0)
-      .line(55.0, 155.0)
-      .line(55.0, 145.0)
+    .start(45.0, 145.0)
+    .line(45.0, 155.0)
+    .line(55.0, 155.0)
+    .line(55.0, 145.0)
     .finalise();
 
   let mut image = Image::new("test_image2.png", [100, 100]);
@@ -131,6 +131,7 @@ fn distance_color(distance: f32) -> u8 {
 }
 
 // Gen pixel
+#[rustfmt::skip]
 fn _algorithm_7(coords: [f32; 2], shape: &ColouredShape) -> [u8; 3] {
   // eprintln!("!!coords: {coords:?}");
   let mut dist_red = f32::INFINITY;
@@ -145,8 +146,9 @@ fn _algorithm_7(coords: [f32; 2], shape: &ColouredShape) -> [u8; 3] {
 
   for (c, contour) in shape.contours().enumerate() {
     for (s, spline) in contour.splines().enumerate() {
-      let distance = spline_signed_distance(&spline.spline, coords);
+      let distance = spline_signed_distance(&spline.spline, [shape.corner_rays[c][s], shape.corner_rays[c][s+1]], coords);
       // let outside_contour =
+
       if (*spline.colour ^ RED).as_bool()
       && (distance < dist_red)
       && distance > 0.0
@@ -156,20 +158,24 @@ fn _algorithm_7(coords: [f32; 2], shape: &ColouredShape) -> [u8; 3] {
         contour_red = Some(c);
         // eprintln!("c: {c:?}, s: {s:?}");
       }
-    //   if (*spline.colour ^ GREEN).as_bool() && (distance < dist_green)
-    //   && distance > 0.0 {
-    //     dist_green = distance;
-    //     spline_green = Some(s);
-    //     contour_green = Some(c);
-    //     // eprintln!("c: {c:?}, s: {s:?}");
-    //   }
-    //   if (*spline.colour ^ BLUE).as_bool() && (distance < dist_blue)
-    //   && distance > 0.0 {
-    //     dist_blue = distance;
-    //     spline_blue = Some(s);
-    //     contour_blue = Some(c);
-    //     // eprintln!("c: {c:?}, s: {s:?}");
-    //   }
+      if (*spline.colour ^ GREEN).as_bool()
+      && (distance < dist_green)
+      && distance > 0.0
+      {
+        dist_green = distance;
+        spline_green = Some(s);
+        contour_green = Some(c);
+        // eprintln!("c: {c:?}, s: {s:?}");
+      }
+      if (*spline.colour ^ BLUE).as_bool()
+      && (distance < dist_blue)
+      && distance > 0.0
+      {
+        dist_blue = distance;
+        spline_blue = Some(s);
+        contour_blue = Some(c);
+        // eprintln!("c: {c:?}, s: {s:?}");
+      }
     }
   }
   // eprintln!("cr: {contour_red:?}, sr: {spline_red:?}");
@@ -204,13 +210,18 @@ fn _algorithm_7(coords: [f32; 2], shape: &ColouredShape) -> [u8; 3] {
       .spline,
     Point(coords),
   );
-  [distance_color(dist_red), 0, 0]
+  // [distance_color(dist_red), 0, 0]
+  [distance_color(dist_red), distance_color(dist_green), distance_color(dist_blue)]
 }
 
 // fn cmp() {}
 
 // Signed distance of Point to spline
-fn spline_signed_distance(spline: &(&[EdgeSegment], &[Point<f32>]), coords: [f32; 2]) -> f32 {
+fn spline_signed_distance(
+  spline: &(&[EdgeSegment], &[Point<f32>]),
+  corner_rays: [Point<f32>; 2],
+  coords: [f32; 2],
+) -> f32 {
   let mut points = spline.1.iter();
   let mut next_point = points.next().unwrap();
 
@@ -220,7 +231,7 @@ fn spline_signed_distance(spline: &(&[EdgeSegment], &[Point<f32>]), coords: [f32
       EdgeSegment::Line => {
         let point = next_point;
         next_point = points.next().unwrap();
-        let dist_to_line = _signed_line_distance([*point, *next_point], Point(coords));
+        let dist_to_line = _signed_line_distance([*point, *next_point], corner_rays, Point(coords));
         if dist_to_line < dist {
           dist = dist_to_line;
         }
@@ -233,10 +244,7 @@ fn spline_signed_distance(spline: &(&[EdgeSegment], &[Point<f32>]), coords: [f32
   dist
 }
 
-fn spline_signed_pseudo_distance(
-  spline: &(&[EdgeSegment], &[Point<f32>]),
-  pnt: Point<f32>,
-) -> f32 {
+fn spline_signed_pseudo_distance(spline: &(&[EdgeSegment], &[Point<f32>]), pnt: Point<f32>) -> f32 {
   let mut points = spline.1.iter();
   let mut next_point = points.next();
 
@@ -260,17 +268,33 @@ fn spline_signed_pseudo_distance(
   dist
 }
 
-fn _signed_line_distance(line: [Point<f32>; 2], point: Point<f32>) -> f32 {
+fn _signed_line_distance(
+  line: [Point<f32>; 2],
+  corner_rays: [Point<f32>; 2],
+  point: Point<f32>,
+) -> f32 {
   // TODO: Impl `math::dot` on Point.
   #[rustfmt::skip]
-  let t = (
+  let mut t = (
     math::dot((point - line[0]).0, (line[1] - line[0]).0) /
     math::dot((line[1] - line[0]).0, (line[1] - line[0]).0)
   );
-  if t > 1.0 {
-
+  if t < 0.0 {
+    // check ray at starting corner
+    let vec_a = point - line[0];
+    let vec_b = corner_rays[0] - line[0];
+    if math::det([vec_a.0, vec_b.0]) < 0.0 {
+      return f32::INFINITY;
+    }
+  } else if t > 1.0 {
+    // check ray at ending corner
+    let vec_a = point - line[1];
+    let vec_b = corner_rays[1] - line[1];
+    if math::det([vec_b.0, vec_a.0]) > 0.0 {
+      return f32::INFINITY;
+    }
   }
-  let t = t.clamp(0.0, 1.0);
+  t = t.clamp(0.0, 1.0);
   let point_on_line = line[0] + t * (line[1] - line[0]);
   let dist = (point - point_on_line).abs();
 

@@ -127,6 +127,7 @@ fn compute_corner_rays(mut coloured_shape: ColouredShape) -> ColouredShape {
 
       exts.push(direction * ray);
     }
+    exts.push(exts[0]);
     coloured_shape.corner_rays.push(exts);
   }
   coloured_shape
