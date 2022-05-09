@@ -159,4 +159,3 @@ fn _line_pseudo_distance(line: [Point<f32>; 2], point: Point<f32>) -> f32 {
 fn _signed_line_distance() {}
 // TODO: impl `Segment` trait with distance(auto impl) & pseudo_distance(manual impl) methods
 
-// TODO: Shape should divide corners as section 2.4 describes.

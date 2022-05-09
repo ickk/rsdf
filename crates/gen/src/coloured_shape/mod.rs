@@ -106,12 +106,12 @@ fn compute_corner_rays(mut coloured_shape: ColouredShape) -> ColouredShape {
     for corner in contour.corners.iter() {
       let before = *contour.points.get(corner.1 - 1).or(contour.points.get(contour.points.len()-2))
         .unwrap();
-      let vec_a = before - contour.points[corner.1];
-
       let after = *contour.points.get(corner.1 + 1).or(contour.points.get(1)).unwrap();
+      // Define two vectors, vec_a & vec_b, that extend from `corner` to `before` and from `corner`
+      // to `after` respectively.
+      let vec_a = before - contour.points[corner.1];
       let vec_b = after - contour.points[corner.1];
-
-      // create a ray leading out from the corner that divides the plane.
+      // Create a ray leading out from the corner that divides the plane.
       // the sign of the ray is determined by whether the angle between the vectors is less-than
       // or greater-than pi. This makes the ray always point out from the contour.
       let ray = (vec_a.normalize() + vec_b.normalize()).normalize();
