@@ -111,9 +111,9 @@ fn compute_corner_rays(mut coloured_shape: ColouredShape) -> ColouredShape {
       // to `after` respectively.
       let vec_a = before - contour.points[corner.1];
       let vec_b = after - contour.points[corner.1];
-      // Create a ray leading out from the corner that divides the plane.
-      // the sign of the ray is determined by whether the angle between the vectors is less-than
-      // or greater-than pi. This makes the ray always point out from the contour.
+      // Create a ray leading out from the corner to divide the plane.
+      // The sign of the ray is determined by whether the angle between the vectors is less-than
+      // or greater-than pi. This makes the ray always point outwards from the contour.
       let ray = (vec_a.normalize() + vec_b.normalize()).normalize();
       let direction = 1.0f32.copysign(math::det([vec_a.0, vec_b.0]));
 
@@ -123,5 +123,3 @@ fn compute_corner_rays(mut coloured_shape: ColouredShape) -> ColouredShape {
   }
   coloured_shape
 }
-
-// TODO: determine directionality of corner_extension. Positive should point out from the contour.
