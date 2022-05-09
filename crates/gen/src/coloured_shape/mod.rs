@@ -1,7 +1,7 @@
 pub mod spline_colour;
 mod svg;
 
-use crate::math::Point;
+use crate::math::{self, Point};
 use crate::shape::*;
 use spline_colour::*;
 
@@ -9,6 +9,7 @@ use spline_colour::*;
 pub struct ColouredShape {
   shape: Shape,
   colours: Vec<Vec<SplineColour>>,
+  pub corner_rays: Vec<Vec<Point<f32>>>,
 }
 
 #[derive(Debug)]
@@ -25,25 +26,31 @@ pub struct ColouredSpline<'a> {
 
 impl ColouredShape {
   pub fn from_shape(shape: Shape) -> Self {
-    colour_shape(shape)
+    let shape = colour_shape(shape);
+    let shape = compute_corner_rays(shape);
+
+    shape
   }
   pub fn svg(&self) -> String {
     svg::svg(self)
   }
   pub fn contours(&self) -> impl Iterator<Item = ColouredContour> {
-    self.shape.contours().zip(self.colours.iter())
-      .map(|(contour, colours)| {
-        ColouredContour { contour, colours }
-      })
+    self
+      .shape
+      .contours()
+      .zip(self.colours.iter())
+      .map(|(contour, colours)| ColouredContour { contour, colours })
   }
 }
 
 impl ColouredContour<'_> {
   pub fn splines(&self) -> impl Iterator<Item = ColouredSpline> {
-    self.contour.splines().into_iter().zip(self.colours.iter())
-      .map(|(spline, colour)| {
-        ColouredSpline { spline, colour }
-      })
+    self
+      .contour
+      .splines()
+      .into_iter()
+      .zip(self.colours.iter())
+      .map(|(spline, colour)| ColouredSpline { spline, colour })
   }
 
   pub fn get_spline(&self, index: usize) -> Option<ColouredSpline> {
@@ -86,5 +93,35 @@ fn colour_shape(shape: Shape) -> ColouredShape {
   ColouredShape {
     shape,
     colours: shape_colours,
+    corner_rays: vec![], // this is uninitialised! could use an option to memoize value
   }
 }
+
+// TODO: merge ColouredShape with shape, and use Option types to memoize data
+
+fn compute_corner_rays(mut coloured_shape: ColouredShape) -> ColouredShape {
+  let shape = &coloured_shape.shape;
+  for contour in shape.contours() {
+    let mut exts = Vec::with_capacity(contour.corners.len());
+    for corner in contour.corners.iter() {
+      let before = *contour.points.get(corner.1 - 1).or(contour.points.get(contour.points.len()-2))
+        .unwrap();
+      let vec_a = before - contour.points[corner.1];
+
+      let after = *contour.points.get(corner.1 + 1).or(contour.points.get(1)).unwrap();
+      let vec_b = after - contour.points[corner.1];
+
+      // create a ray leading out from the corner that divides the plane.
+      // the sign of the ray is determined by whether the angle between the vectors is less-than
+      // or greater-than pi. This makes the ray always point out from the contour.
+      let ray = (vec_a.normalize() + vec_b.normalize()).normalize();
+      let direction = 1.0f32.copysign(math::det([vec_a.0, vec_b.0]));
+
+      exts.push(direction * ray);
+    }
+    coloured_shape.corner_rays.push(exts);
+  }
+  coloured_shape
+}
+
+// TODO: determine directionality of corner_extension. Positive should point out from the contour.

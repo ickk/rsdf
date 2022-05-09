@@ -29,28 +29,36 @@ fn main() {
   eprintln!("{}\n", shape.svg(false));
   eprintln!("{}\n", shape.svg(true));
 
-  // eprintln!("corners:");
-  // for corner in shape.contours().iter().next().unwrap().corners() {
-  //   eprintln!("  {corner:?}");
-  // }
+  eprintln!("corners:");
+  for corner in shape.contours().next().unwrap().corners() {
+    eprintln!("  {corner:?}");
+  }
 
-  // eprintln!("splines:");
-  // for spline in shape.contours().iter().next().unwrap().splines() {
-  //   eprintln!("  {spline:?}");
-  // }
-  // eprintln!("");
+  eprintln!("splines:");
+  for spline in shape.contours().next().unwrap().splines() {
+    eprintln!("  {spline:?}");
+  }
+  eprintln!("");
 
-  // println!("!!!");
-  // let coloured_shape = ColouredShape::from_shape(shape);
-  // for contour in coloured_shape.contours() {
-  //   println!("{:?}", contour);
-  //   for spline in contour.splines() {
-  //     println!("{:?}", spline);
-  //   }
-  // }
-  // println!("!!!");
+  eprintln!("!!!");
+  let coloured_shape = ColouredShape::from_shape(shape);
+  for contour in coloured_shape.contours() {
+    eprintln!("{:?}", contour);
+    for spline in contour.splines() {
+      eprintln!("{:?}", spline);
+    }
+  }
+  eprintln!("!!!");
 
-  // eprintln!("coloured_shape: {coloured_shape:?}\n");
+  for (contour, exts) in coloured_shape.contours().zip(coloured_shape.corner_rays.iter()) {
+    eprintln!("");
+    for (spline, ext) in contour.splines().zip(exts.iter()) {
+      eprintln!("spline: {spline:?}\n ext: {ext:?}");
+    }
+  }
+  eprintln!("\n{}\n", coloured_shape.svg());
+
+  eprintln!("coloured_shape: {coloured_shape:?}\n");
 
   // eprintln!("{}\n", coloured_shape.svg());
 

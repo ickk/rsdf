@@ -68,6 +68,7 @@ impl<T> Sub for Point<T>
 where T: Copy + Sub<Output = T> {
   type Output = Self;
 
+  #[inline]
   fn sub(self, other: Self) -> Self::Output {
     Self ([
       self.0[0] - other.0[0],
@@ -80,6 +81,7 @@ impl<T> Add for Point<T>
 where T: Copy + Add<Output = T> {
   type Output = Self;
 
+  #[inline]
   fn add(self, other: Self) -> Self::Output {
     Self ([
       self.0[0] + other.0[0],
@@ -92,6 +94,7 @@ where T: Copy + Add<Output = T> {
 impl Mul<f32> for Point<f32> {
   type Output = Self;
 
+  #[inline]
   fn mul(self, rhs: f32) -> Self::Output {
     Self ([
       self.0[0] * rhs,
@@ -103,6 +106,7 @@ impl Mul<f32> for Point<f32> {
 impl Mul<Point<f32>> for f32 {
   type Output = Point<f32>;
 
+  #[inline]
   fn mul(self, rhs: Point<f32>) -> Point<f32> {
     Point ([
       self * rhs.0[0],
@@ -112,8 +116,13 @@ impl Mul<Point<f32>> for f32 {
 }
 
 impl Point<f32> {
+  #[inline]
   pub fn abs(&self) -> f32 {
     (self.0[0] * self.0[0] + self.0[1] * self.0[1]).sqrt()
   }
   // TODO: look into fast sqrt approx
+  #[inline]
+  pub fn normalize(&self) -> Self {
+    Self(normalize(self.0))
+  }
 }
