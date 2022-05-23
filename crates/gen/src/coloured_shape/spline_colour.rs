@@ -52,12 +52,12 @@ impl std::ops::BitXorAssign for SplineColour {
   }
 }
 
-impl std::ops::BitXor for SplineColour {
+impl std::ops::BitAnd for SplineColour {
   type Output = Self;
 
   #[inline]
-  fn bitxor(self, rhs: Self) -> Self {
-    SplineColour {inner: self.inner ^ rhs.inner}
+  fn bitand(self, rhs: Self) -> Self {
+    SplineColour {inner: self.inner & rhs.inner}
   }
 }
 

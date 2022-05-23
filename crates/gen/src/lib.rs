@@ -1,7 +1,9 @@
 pub mod coloured_shape;
 pub mod math;
 pub mod shape;
+pub mod sdf;
 
+use coloured_shape::ColouredSpline;
 pub use coloured_shape::{
   spline_colour::{BLUE, GREEN, RED},
   ColouredShape,
@@ -17,7 +19,7 @@ use std::iter;
 use std::{fs::File, mem::discriminant};
 
 use crate::shape::ShapeBuilder;
-struct Image<'a> {
+pub struct Image<'a> {
   encoder: png::Encoder<'a, BufWriter<File>>,
   data: Vec<u8>,
   width: usize,
@@ -66,23 +68,19 @@ impl Image<'_> {
 
 pub fn do_thing() {
   println!("doing_thing");
-  let mut image = Image::new("test_image.png", [3, 4]);
-  image.set_pixel([1, 1], [255, 0, 255]);
-  image.set_pixel([1, 3], [255, 255, 255]);
-
-  image.flush();
 
   let shape = Shape::build()
     .viewbox(0.0, 200.0, 0.0, 200.0)
     .contour()
-    .start(45.0, 145.0)
-    .line(45.0, 155.0)
-    .line(55.0, 155.0)
-    .line(55.0, 145.0)
+    .start(50.0, 50.0)
+    .line(150.0, 50.0)
+    .line(150.0, 150.0)
+    .line(50.0, 150.0)
     .finalise();
 
-  let mut image = Image::new("test_image2.png", [100, 100]);
-  _algorithm_1(&mut image, shape);
+  let mut image = Image::new("test_image.png", [200, 200]);
+  sdf::construct_image(&mut image, shape);
+  // _algorithm_1(&mut image, shape);
   image.flush();
 }
 
@@ -123,11 +121,12 @@ fn _algorithm_1(image: &mut Image, shape: Shape) {
 // }
 
 // distanceColor
-const _MAX_DISTANCE: f32 = 10.0;
-const _MAX_COLOUR: u8 = 127;
+const MAX_DISTANCE: f32 = 10.0;
+const MAX_COLOUR: f32 = 256.0;
 #[inline]
 fn distance_color(distance: f32) -> u8 {
-  ((distance / (2.0 * _MAX_DISTANCE) + 0.5) * _MAX_COLOUR as f32) as u8
+  let distance = distance.clamp(-MAX_DISTANCE, MAX_DISTANCE);
+  (( (distance+MAX_DISTANCE) / (2.0*MAX_DISTANCE) * MAX_COLOUR) - 1.0) as u8
 }
 
 // Gen pixel
@@ -137,7 +136,7 @@ fn _algorithm_7(coords: [f32; 2], shape: &ColouredShape) -> [u8; 3] {
   let mut dist_red = f32::INFINITY;
   let mut spline_red = Some(0);
   let mut contour_red = Some(0);
-  let mut dist_green = 100.0; //f32::INFINITY;
+  let mut dist_green = f32::INFINITY;
   let mut spline_green = Some(0);
   let mut contour_green = Some(0);
   let mut dist_blue = f32::INFINITY;
@@ -149,27 +148,27 @@ fn _algorithm_7(coords: [f32; 2], shape: &ColouredShape) -> [u8; 3] {
       let distance = spline_signed_distance(&spline.spline, [shape.corner_rays[c][s], shape.corner_rays[c][s+1]], coords);
       // let outside_contour =
 
-      if (*spline.colour ^ RED).as_bool()
+      if (*spline.colour & RED).as_bool()
       && (distance < dist_red)
-      && distance > 0.0
+      // && distance > 0.0
       {
         dist_red = distance;
         spline_red = Some(s);
         contour_red = Some(c);
         // eprintln!("c: {c:?}, s: {s:?}");
       }
-      if (*spline.colour ^ GREEN).as_bool()
+      if (*spline.colour & GREEN).as_bool()
       && (distance < dist_green)
-      && distance > 0.0
+      // && distance > 0.0
       {
         dist_green = distance;
         spline_green = Some(s);
         contour_green = Some(c);
         // eprintln!("c: {c:?}, s: {s:?}");
       }
-      if (*spline.colour ^ BLUE).as_bool()
+      if (*spline.colour & BLUE).as_bool()
       && (distance < dist_blue)
-      && distance > 0.0
+      // && distance > 0.0
       {
         dist_blue = distance;
         spline_blue = Some(s);
@@ -275,10 +274,9 @@ fn _signed_line_distance(
 ) -> f32 {
   // TODO: Impl `math::dot` on Point.
   #[rustfmt::skip]
-  let mut t = (
+  let mut t =
     math::dot((point - line[0]).0, (line[1] - line[0]).0) /
-    math::dot((line[1] - line[0]).0, (line[1] - line[0]).0)
-  );
+    math::dot((line[1] - line[0]).0, (line[1] - line[0]).0);
   if t < 0.0 {
     // check ray at starting corner
     let vec_a = point - line[0];
@@ -290,7 +288,7 @@ fn _signed_line_distance(
     // check ray at ending corner
     let vec_a = point - line[1];
     let vec_b = corner_rays[1] - line[1];
-    if math::det([vec_b.0, vec_a.0]) > 0.0 {
+    if math::det([vec_b.0, vec_a.0]) < 0.0 {
       return f32::INFINITY;
     }
   }

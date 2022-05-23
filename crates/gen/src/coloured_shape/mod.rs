@@ -43,6 +43,12 @@ impl ColouredShape {
       .map(|(contour, colours)| ColouredContour { contour, colours })
   }
 
+  pub fn corner_rays(&self) -> impl Iterator<Item = impl Iterator<Item = (&Point<f32>, &Point<f32>)>> {
+    self.corner_rays.iter().map(|vec_points| {
+      vec_points.iter().zip(vec_points.iter().skip(1))
+    })
+  }
+
   pub fn get_contour(&self, index: usize) -> Option<ColouredContour> {
     Some(ColouredContour {
       contour: self.shape.contours.get(index)?,
@@ -110,7 +116,7 @@ fn colour_shape(shape: Shape) -> ColouredShape {
 fn compute_corner_rays(mut coloured_shape: ColouredShape) -> ColouredShape {
   let shape = &coloured_shape.shape;
   for contour in shape.contours() {
-    let mut exts = Vec::with_capacity(contour.corners.len());
+    let mut rays = Vec::with_capacity(contour.corners.len());
     for corner in contour.corners.iter() {
       let before = *contour.points.get(corner.1 - 1).or(contour.points.get(contour.points.len()-2))
         .unwrap();
@@ -125,10 +131,10 @@ fn compute_corner_rays(mut coloured_shape: ColouredShape) -> ColouredShape {
       let ray = (vec_a.normalize() + vec_b.normalize()).normalize();
       let direction = 1.0f32.copysign(math::det([vec_a.0, vec_b.0]));
 
-      exts.push(direction * ray);
+      rays.push(direction * ray);
     }
-    exts.push(exts[0]);
-    coloured_shape.corner_rays.push(exts);
+    rays.push(rays[0]);
+    coloured_shape.corner_rays.push(rays);
   }
   coloured_shape
 }
