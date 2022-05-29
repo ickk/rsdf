@@ -49,6 +49,9 @@ pub enum Segment {
   QuadBezier(QuadBezier),
   CubicBezier(CubicBezier),
 }
+
+// pub use Segment::{Line, QuadBezier, CubicBezier}; //TODO
+
 pub trait SegmentType {}
 
 #[derive(Debug, PartialEq)]
@@ -105,11 +108,22 @@ impl<T> Memo<T> {
 #[derive(Debug, PartialEq)]
 pub struct Spline<'a> {
   segments: &'a [Segment],
-  channels: u8,
 }
 
-pub struct Channels {
+impl<'a> From<&'a [Segment]> for Spline<'a> {
+  fn from(value: &'a [Segment]) -> Self {
+    Self { segments: value }
+  }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Channel {
   inner: u8,
+}
+impl From<u8> for Channel {
+  fn from(value: u8) -> Self {
+    Self { inner: value }
+  }
 }
 
 // TODO
@@ -125,7 +139,7 @@ impl Spline<'_> {
 pub struct Contour {
   segments: Vec<Segment>,
   corners: Memo<Vec<usize>>,
-  channels: Memo<Vec<u8>>,
+  channels: Memo<Vec<Channel>>,
   // Kind: enum{FullySmooth, TearDrop, General}
   // remove corners, add spline_indices
 }
@@ -135,21 +149,19 @@ impl Contour {
   /// iterator.
   /// Note: Assumes that if there are any corners, then at least one of the corners must be at
   /// segment[0].
-  pub fn splines(&self) -> impl Iterator<Item = Spline> { //Iterator<Item = Spline> {
+  pub fn splines(&self) -> impl Iterator<Item = (Spline, Channel)> { //Iterator<Item = Spline> {
     use itertools::Itertools;
 
     let corners = self.corners.unwrap();
     std::iter::once(0)
-      .chain(corners.iter().map(|u| *u))
+      .chain(corners.iter().copied())
       .chain(std::iter::once(self.segments.len()))
       .dedup()
       .tuple_windows()
       .map(|(index, index_1)| {
-        Spline {
-          segments: &self.segments[index..index_1],
-          channels: 0b0,
-        }
+        Spline { segments: &self.segments[index..index_1] }
       })
+      .zip(self.channels.unwrap().iter().copied())
   }
 }
 // TODO: generate channels
@@ -159,25 +171,25 @@ pub struct Shape {
   contours: Vec<Contour>,
 }
 
-impl Shape {
-  pub fn sample(&self, position: Point) -> f32 {
-    let mut min_dist = f32::INFINITY;
-    let mut closest_spline = None;
-    for contour in self.contours.iter() {
-      for spline in contour.splines() {
-        let dist = spline.distance_to(position);
-        if dist < min_dist
-        && (spline.channels & 0b100) != 0 {
-          min_dist = dist;
-          closest_spline = Some(spline);
-        }
-      }
-    }
-    closest_spline
-      .expect(&format!("Couldn't find closest spline for position: {position:?}"))
-      .pseudo_distance_to(position)
-  }
-}
+// impl Shape {
+//   pub fn sample(&self, position: Point) -> f32 {
+//     let mut min_dist = f32::INFINITY;
+//     let mut closest_spline = None;
+//     for contour in self.contours.iter() {
+//       for spline in contour.splines() {
+//         let dist = spline.distance_to(position);
+//         if dist < min_dist
+//         && (spline.channels & 0b100) != 0 {
+//           min_dist = dist;
+//           closest_spline = Some(spline);
+//         }
+//       }
+//     }
+//     closest_spline
+//       .expect(&format!("Couldn't find closest spline for position: {position:?}"))
+//       .pseudo_distance_to(position)
+//   }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -231,9 +243,10 @@ mod tests {
     let contour = Contour {
       segments: vec![],
       corners: Memo::Value(vec![]),
+      channels: Memo::Value(vec![]),
     };
     let splines = contour.splines().collect::<Vec<_>>();
-    let expected: Vec<Spline> = vec![];
+    let expected: Vec<(Spline, Channel)> = vec![];
     assert_eq!(splines, expected);
   }
 
@@ -255,31 +268,32 @@ mod tests {
         })),
       ],
       corners: Memo::Value(vec![0, 1, 2]),
+      channels: Memo::Value(vec![0b101.into(), 0b110.into(), 0b011.into()]),
     };
 
     let splines = contour.splines().collect::<Vec<_>>();
-    let expected: Vec<Spline> = vec![
-      Spline {
-        segments: &[Segment::Line((Line {
+    let expected: Vec<(Spline, Channel)> = vec![
+      (
+        [Segment::Line((Line {
           start: Point {x: 0.0, y: 0.0},
           end: Point {x: 1.0, y: 0.0},
-        }))],
-        channels: 0,
-      },
-      Spline {
-        segments: &[Segment::Line((Line {
+        }))][..].into(),
+        0b101.into(),
+      ),
+      (
+        [Segment::Line((Line {
           start: Point {x: 1.0, y: 0.0},
           end: Point {x: 0.5, y: 1.0},
-        }))],
-        channels: 0,
-      },
-      Spline {
-        segments: &[Segment::Line((Line {
+        }))][..].into(),
+        0b110.into(),
+      ),
+      (
+        [Segment::Line((Line {
           start: Point {x: 0.5, y: 1.0},
           end: Point {x: 0.0, y: 0.0},
-        }))],
-        channels: 0,
-      }
+        }))][..].into(),
+        0b011.into(),
+      ),
     ];
 
     assert_eq!(splines, expected);
@@ -304,29 +318,27 @@ mod tests {
         })),
       ],
       corners: Memo::Value(vec![]),
-      channels
+      channels: Memo::Value(vec![0b111.into()]),
     };
 
     let splines = contour.splines().collect::<Vec<_>>();
-    let expected: Vec<Spline> = vec![
-      Spline {
-        segments: &[
-          Segment::Line((Line {
-            start: Point {x: 0.0, y: 0.0},
-            end: Point {x: 1.0, y: 0.0},
-          })),
-          Segment::Line((Line {
-            start: Point {x: 1.0, y: 0.0},
-            end: Point {x: 0.5, y: 1.0},
-          })),
-          Segment::Line((Line {
-            start: Point {x: 0.5, y: 1.0},
-            end: Point {x: 0.0, y: 0.0},
-          })),
-        ],
-        channels: 0,
-      }
-    ];
+    let expected: Vec<(Spline, Channel)> = vec![(
+      [
+        Segment::Line((Line {
+          start: Point {x: 0.0, y: 0.0},
+          end: Point {x: 1.0, y: 0.0},
+        })),
+        Segment::Line((Line {
+          start: Point {x: 1.0, y: 0.0},
+          end: Point {x: 0.5, y: 1.0},
+        })),
+        Segment::Line((Line {
+          start: Point {x: 0.5, y: 1.0},
+          end: Point {x: 0.0, y: 0.0},
+        })),
+      ][..].into(),
+      0b111.into(),
+    )];
 
     assert_eq!(splines, expected);
   }
