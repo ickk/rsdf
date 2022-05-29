@@ -8,6 +8,16 @@ pub struct Point {
 
 impl Point {
   pub const ORIGIN: Self = Self {x: 0.0, y: 0.0};
+
+  pub fn vector_to(self, end: Point) -> Vector {
+    Vector::from_points(self, end)
+  }
+}
+
+impl From<(f32, f32)> for Point {
+  fn from(value: (f32, f32)) -> Self {
+    Point {x: value.0, y: value.1}
+  }
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -16,15 +26,14 @@ pub struct Vector {
   pub y: f32,
 }
 
+impl From<(f32, f32)> for Vector {
+  fn from(value: (f32, f32)) -> Self {
+    Vector {x: value.0, y: value.1}
+  }
+}
+
 impl Vector {
   pub const ZERO: Self = Self {x: 0.0, y: 0.0};
-
-  pub fn from(start: Point, end: Point) -> Self {
-    Self {
-      x: end.x - start.x,
-      y: end.y - start.y,
-    }
-  }
 
   pub fn abs(self) -> f32 {
     (self.x*self.x + self.y*self.y).sqrt()
@@ -32,6 +41,13 @@ impl Vector {
 
   pub fn norm(self) -> Self {
     self / self.abs()
+  }
+
+  pub fn from_points(start: Point, end: Point) -> Self {
+    Self {
+      x: end.x - start.x,
+      y: end.y - start.y,
+    }
   }
 }
 
@@ -164,18 +180,30 @@ pub struct CornerRays {
   end: Vector,
 }
 
+impl From<(Vector, Vector)> for CornerRays {
+  fn from(vectors: (Vector, Vector)) -> Self {
+    Self {
+      start: vectors.0,
+      end: vectors.1,
+    }
+  }
+}
+
+impl From<((f32, f32), (f32, f32))> for CornerRays {
+  fn from(vectors: ((f32, f32), (f32, f32))) -> Self {
+    Self {
+      start: vectors.0.into(),
+      end: vectors.1.into(),
+    }
+  }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Spline<'a> {
   segments: &'a [Segment],
   channels: Channels,
   corner_rays: &'a CornerRays,
 }
-
-// impl<'a> From<&'a [Segment]> for Spline<'a> {
-//   fn from(value: &'a [Segment]) -> Self {
-//     Self { segments: value }
-//   }
-// }
 
 // TODO
 impl Spline<'_> {
@@ -199,6 +227,7 @@ pub struct Contour {
   corners: Memo<Vec<usize>>,
   corner_rays: Memo<Vec<CornerRays>>,
   channels: Memo<Vec<Channels>>,
+  // TODO:
   // Kind: enum{FullySmooth, TearDrop, General}
   // remove corners, add spline_indices
 }
@@ -261,19 +290,32 @@ mod tests {
   use super::*;
 
   #[test]
+  fn points_vector_to() {
+    let a = Point {x: 1.0, y: 2.0};
+    let b = Point {x: 5.5, y: 1.5};
+
+    assert_eq!(Vector{x: 4.5, y: -0.5}, a.vector_to(b));
+  }
+
+  #[test]
   fn vector_from_points() {
     let a = Point {x: 1.0, y: 2.0};
     let b = Point {x: 5.5, y: 1.5};
 
-    assert_eq!(Vector{x: 4.5, y: -0.5}, Vector::from(a, b));
+    assert_eq!(Vector{x: 4.5, y: -0.5}, Vector::from_points(a, b));
+  }
+
+  #[test]
+  fn vector_from_f32s() {
+    assert_eq!(Vector{x: 3.2, y: -2.3}, Vector::from((3.2, -2.3)));
   }
 
   #[test]
   fn vector_add() {
-    let a = Vector {x: 1.0, y: 2.0};
-    let b = Vector {x: 4.0, y: -3.0};
+    let a: Vector = (1.0, 2.0).into();
+    let b: Vector = (4.0, -3.0).into();
 
-    assert_eq!(Vector{x: 5.0, y: -1.0}, a + b);
+    assert_eq!(Vector::from((5.0, -1.0)), a + b);
   }
 
   #[test]
@@ -356,9 +398,9 @@ mod tests {
     let point_b = Point {x: 1.0, y: 0.0};
     let point_c = Point {x: 0.5, y: 1.0};
 
-    let vec_ab = Vector::from(point_a, point_b);
-    let vec_bc = Vector::from(point_b, point_c);
-    let vec_ca = Vector::from(point_c, point_a);
+    let vec_ab = point_a.vector_to(point_b);
+    let vec_bc = point_b.vector_to(point_c);
+    let vec_ca = point_c.vector_to(point_a);
 
     let ray_a = (vec_ca.norm() + -vec_ab.norm()).norm();
     let ray_b = (vec_ab.norm() + -vec_bc.norm()).norm();
@@ -418,8 +460,8 @@ mod tests {
     let point_b = Point {x: 1.0, y: 0.0};
     let point_c = Point {x: 0.5, y: 1.0};
 
-    let vec_ab = Vector::from(point_a, point_b);
-    let vec_ca = Vector::from(point_c, point_a);
+    let vec_ab = Vector::from_points(point_a, point_b);
+    let vec_ca = Vector::from_points(point_c, point_a);
 
     let ray_a = (vec_ca.norm() + -vec_ab.norm()).norm();
 
