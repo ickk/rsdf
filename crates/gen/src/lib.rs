@@ -45,41 +45,24 @@ impl std::ops::Sub for Vector {
 
 #[derive(Debug, PartialEq)]
 pub enum Segment {
-  Line(Line),
-  QuadBezier(QuadBezier),
-  CubicBezier(CubicBezier),
+  Line {
+    start: Point,
+    end: Point,
+  },
+  QuadBezier {
+    start: Point,
+    control: Point,
+    end: Point,
+  },
+  CubicBezier {
+    start: Point,
+    control_1: Point,
+    control_2: Point,
+    end: Point,
+  },
 }
 
-// pub use Segment::{Line, QuadBezier, CubicBezier}; //TODO
-
-pub trait SegmentType {}
-
-#[derive(Debug, PartialEq)]
-pub struct Line {
-  start: Point,
-  end: Point,
-}
-
-impl SegmentType for Line {}
-
-#[derive(Debug, PartialEq)]
-pub struct QuadBezier {
-  start: Point,
-  control: Point,
-  end: Point,
-}
-
-impl SegmentType for QuadBezier {}
-
-#[derive(Debug, PartialEq)]
-pub struct CubicBezier {
-  start: Point,
-  control_1: Point,
-  control_2: Point,
-  end: Point,
-}
-
-impl SegmentType for CubicBezier {}
+pub use Segment::{ Line, QuadBezier, CubicBezier }; //TODO
 
 #[derive(PartialEq)]
 pub enum Memo<T> {
@@ -254,18 +237,18 @@ mod tests {
   fn contour_splines() {
     let contour = Contour {
       segments: vec![
-        Segment::Line((Line {
+        Line {
           start: Point {x: 0.0, y: 0.0},
           end: Point {x: 1.0, y: 0.0},
-        })),
-        Segment::Line((Line {
+        },
+        Line {
           start: Point {x: 1.0, y: 0.0},
           end: Point {x: 0.5, y: 1.0},
-        })),
-        Segment::Line((Line {
+        },
+        Line {
           start: Point {x: 0.5, y: 1.0},
           end: Point {x: 0.0, y: 0.0},
-        })),
+        },
       ],
       corners: Memo::Value(vec![0, 1, 2]),
       channels: Memo::Value(vec![0b101.into(), 0b110.into(), 0b011.into()]),
@@ -274,24 +257,24 @@ mod tests {
     let splines = contour.splines().collect::<Vec<_>>();
     let expected: Vec<(Spline, Channel)> = vec![
       (
-        [Segment::Line((Line {
+        [Line {
           start: Point {x: 0.0, y: 0.0},
           end: Point {x: 1.0, y: 0.0},
-        }))][..].into(),
+        }][..].into(),
         0b101.into(),
       ),
       (
-        [Segment::Line((Line {
+        [Line {
           start: Point {x: 1.0, y: 0.0},
           end: Point {x: 0.5, y: 1.0},
-        }))][..].into(),
+        }][..].into(),
         0b110.into(),
       ),
       (
-        [Segment::Line((Line {
+        [Line {
           start: Point {x: 0.5, y: 1.0},
           end: Point {x: 0.0, y: 0.0},
-        }))][..].into(),
+        }][..].into(),
         0b011.into(),
       ),
     ];
@@ -304,18 +287,18 @@ mod tests {
     // No corners
     let contour = Contour {
       segments: vec![
-        Segment::Line((Line {
+        Line {
           start: Point {x: 0.0, y: 0.0},
           end: Point {x: 1.0, y: 0.0},
-        })),
-        Segment::Line((Line {
+        },
+        Line {
           start: Point {x: 1.0, y: 0.0},
           end: Point {x: 0.5, y: 1.0},
-        })),
-        Segment::Line((Line {
+        },
+        Line {
           start: Point {x: 0.5, y: 1.0},
           end: Point {x: 0.0, y: 0.0},
-        })),
+        },
       ],
       corners: Memo::Value(vec![]),
       channels: Memo::Value(vec![0b111.into()]),
@@ -324,18 +307,18 @@ mod tests {
     let splines = contour.splines().collect::<Vec<_>>();
     let expected: Vec<(Spline, Channel)> = vec![(
       [
-        Segment::Line((Line {
+        Line {
           start: Point {x: 0.0, y: 0.0},
           end: Point {x: 1.0, y: 0.0},
-        })),
-        Segment::Line((Line {
+        },
+        Line {
           start: Point {x: 1.0, y: 0.0},
           end: Point {x: 0.5, y: 1.0},
-        })),
-        Segment::Line((Line {
+        },
+        Line {
           start: Point {x: 0.5, y: 1.0},
           end: Point {x: 0.0, y: 0.0},
-        })),
+        },
       ][..].into(),
       0b111.into(),
     )];
