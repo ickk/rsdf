@@ -7,8 +7,6 @@ pub struct Point {
 }
 
 impl Point {
-  pub const ORIGIN: Self = Self {x: 0.0, y: 0.0};
-
   pub fn vector_to(self, end: Point) -> Vector {
     Vector::from_points(self, end)
   }
@@ -17,6 +15,30 @@ impl Point {
 impl From<(f32, f32)> for Point {
   fn from(value: (f32, f32)) -> Self {
     Point {x: value.0, y: value.1}
+  }
+}
+
+// TODO: unit test
+impl std::ops::Add<Vector> for Point {
+  type Output = Self;
+
+  fn add(self, rhs: Vector) -> Self {
+    Self {
+      x: self.x + rhs.x,
+      y: self.y + rhs.y,
+    }
+  }
+}
+
+// TODO: unit test
+impl std::ops::Sub<Vector> for Point {
+  type Output = Self;
+
+  fn sub(self, rhs: Vector) -> Self {
+    Self {
+      x: self.x - rhs.x,
+      y: self.y - rhs.y,
+    }
   }
 }
 
@@ -33,8 +55,6 @@ impl From<(f32, f32)> for Vector {
 }
 
 impl Vector {
-  pub const ZERO: Self = Self {x: 0.0, y: 0.0};
-
   pub fn abs(self) -> f32 {
     (self.x*self.x + self.y*self.y).sqrt()
   }
@@ -49,6 +69,30 @@ impl Vector {
       y: end.y - start.y,
     }
   }
+
+  /// The dot product of a pair of vectors.
+  // TODO: unit test
+  pub fn dot(self, rhs: Vector) -> f32 {
+    self.x * rhs.x + self.y * rhs.y
+  }
+
+  /// The determinant of the matrix formed by the pair of vectors.
+  // TODO: unit test
+  pub fn det(a: Vector, b: Vector) -> f32 {
+    a.x * b.y - a.y * b.x
+  }
+
+  /// An alias for `Vector::det(self, b)`.
+  ///
+  /// Geometrically this gives the signed area of the parallelogram described
+  /// by the pair of vectors.
+  ///
+  /// If the `b` is counter-clockwise to `self` then the result is
+  /// positive, otherwise the result is negative. The area is zero when the
+  /// vectors are parallel.
+  pub fn signed_area(self, b: Vector) -> f32 {
+    Vector::det(self, b)
+  }
 }
 
 impl std::ops::Div<f32> for Vector {
@@ -61,6 +105,31 @@ impl std::ops::Div<f32> for Vector {
     }
   }
 }
+
+// TODO: unit test
+impl std::ops::Mul<f32> for Vector {
+  type Output = Self;
+
+  fn mul(self, rhs: f32) -> Self {
+    Self {
+      x: self.x * rhs,
+      y: self.y * rhs,
+    }
+  }
+}
+
+// TODO: unit test
+impl std::ops::Mul<Vector> for f32 {
+  type Output = Vector;
+
+  fn mul(self, rhs: Vector) -> Vector {
+    Vector {
+      x: self * rhs.x,
+      y: self * rhs.y,
+    }
+  }
+}
+
 
 impl std::ops::Add for Vector {
   type Output = Self;
@@ -114,7 +183,62 @@ pub enum Segment {
   },
 }
 
-pub use Segment::{ Line, QuadBezier, CubicBezier }; //TODO
+impl Segment {
+  // TODO: impl quad & cubic, unit test
+  // TODO: break `t` into own method. store t and if first or last segment in
+  // spline, call appropriate ray methods.
+
+  // TODO: unit test
+  fn closest_param_t(&self, point: Point) -> f32 {
+    match self {
+      &Line{start, end} => {
+        Vector::from_points(start, point).dot(Vector::from_points(start, end))
+        / Vector::from_points(start, end).dot(Vector::from_points(start, end))
+      },
+      _ => unimplemented!(),
+    }
+  }
+
+  // TODO: unit test
+  fn distance_to_point_from_t(&self, point: Point, t: f32) -> f32 {
+    match self {
+      &Line{start, end} => {
+        Vector::from_points(
+          start + (t * Vector::from_points(start, end)),
+          point
+        ).abs()
+      },
+
+      &QuadBezier{..} => unimplemented!(),
+      &CubicBezier{..} => unimplemented!(),
+    }
+  }
+
+  fn distance_to(&self, point: Point) -> f32 {
+    self.distance_to_point_from_t(point, self.closest_param_t(point).clamp(0.0, 1.0))
+  }
+
+  // TODO unit test
+  fn inside_ray_start(&self, ray: Vector, point: Point) -> bool {
+    match self {
+      &Line{start, ..} => {
+        Vector::from_points(start, point).signed_area(ray) >= 0.0
+      },
+      _ => unimplemented!(),
+    }
+  }
+
+  fn inside_ray_end(&self, ray: Vector, point: Point) -> bool {
+    match self {
+      &Line{end, ..} => {
+        Vector::from_points(end, point).signed_area(ray) <= 0.0
+      },
+      _ => unimplemented!(),
+    }
+  }
+}
+
+pub use Segment::{Line, QuadBezier, CubicBezier }; //TODO
 
 #[derive(PartialEq)]
 pub enum Memo<T> {
@@ -208,16 +332,39 @@ pub struct Spline<'a> {
 // TODO
 impl Spline<'_> {
   fn distance_to(&self, position: Point) -> f32 {
-    for segment in self.segments.iter() {
-      match segment {
-        line @ Line{..} => unimplemented!(),
-        quad @ QuadBezier{..} => unimplemented!(),
-        cubic @ CubicBezier{..} => unimplemented!(),
+    let mut selected_dist = f32::INFINITY;
+    let mut selected_segment = None;
+    let mut selected_t = None;
+
+    for (s, segment) in self.segments.iter().enumerate() {
+      let t = segment.closest_param_t(position);
+      let dist = segment.distance_to_point_from_t(position, t.clamp(0.0, 1.0));
+      debug_assert!(dist >= 0.0, "dist must be an absolute value, but was found to be {dist}");
+      if dist < selected_dist {
+        selected_dist = dist;
+        selected_segment = Some(s);
+        selected_t = Some(t);
       }
     }
-    0.0
+
+    if match selected_segment {
+      Some(0) => {
+        selected_t.unwrap() < 0.0
+        && self.segments[selected_segment.unwrap()].inside_ray_start(self.corner_rays.start, position)
+      },
+      Some(x) if x == self.segments.len() => {
+        selected_t.unwrap() > 1.0
+        && self.segments[selected_segment.unwrap()].inside_ray_end(self.corner_rays.end, position)
+      },
+      _ => true,
+    } {
+      selected_dist
+    } else {
+      f32::INFINITY
+    }
   }
-  fn pseudo_distance_to(&self, position: Point) -> f32 {
+
+  fn signed_pseudo_distance_to(&self, position: Point) -> f32 {
     0.0
   }
 }
@@ -281,7 +428,7 @@ impl Shape {
     }
     closest_spline
       .expect(&format!("Couldn't find closest spline for position: {position:?}"))
-      .pseudo_distance_to(position)
+      .signed_pseudo_distance_to(position)
   }
 }
 
@@ -508,5 +655,52 @@ mod tests {
   fn channels_bitand() {
     assert_eq!(Channels::from(0b101), Channels::from(0b111)&Channels::from(0b101));
     assert_eq!(Channels::from(0b000), Channels::from(0b010)&Channels::from(0b101));
+  }
+
+  #[test]
+  fn segment_line_distance_to() {
+    let line = Line {
+      start: (0.0, 0.0).into(),
+      end: (2.0, 4.0).into(),
+    };
+
+    assert_eq!(0.0, line.distance_to((0.0, 0.0).into()));
+    assert_eq!(0.0, line.distance_to((0.5, 1.0).into()));
+    assert_eq!(0.0, line.distance_to((1.0, 2.0).into()));
+    assert_eq!(0.0, line.distance_to((2.0, 4.0).into()));
+    assert_eq!(5.0f32.sqrt(), line.distance_to((3.0, 1.0).into()));
+    assert_eq!(5.0f32.sqrt(), line.distance_to((-1.0, 3.0).into()));
+    assert_eq!(5.0f32.sqrt(), line.distance_to((-1.0, -2.0).into()));
+    assert_eq!(5.0f32.sqrt(), line.distance_to((3.0, 6.0).into()));
+    assert_eq!(1.0, line.distance_to((0.0, -1.0).into()));
+    assert_eq!(2.0, line.distance_to((-2.0, 0.0).into()));
+  }
+
+  #[test]
+  fn segment_line_inside_ray_start() {
+    let line = Line {
+      start: (0.0, 0.0).into(),
+      end: (10.0, 0.0).into(),
+    };
+
+    let ray = Vector::from((-1.0, 1.0)).norm();
+    assert!(line.inside_ray_start(ray, (0.0, 1.0).into()));
+    assert!(line.inside_ray_start(ray, (-1.0, 1.0).into()));
+    assert!(!line.inside_ray_start(ray, (-1.0, 0.0).into()));
+    assert!(!line.inside_ray_start(ray, (-1.01, 1.0).into()));
+  }
+
+  #[test]
+  fn segment_line_inside_ray_end() {
+    let line = Line {
+      start: (0.0, 0.0).into(),
+      end: (10.0, 0.0).into(),
+    };
+
+    let ray = Vector::from((2.0, 1.0)).norm();
+    assert!(line.inside_ray_end(ray, (10.0, 1.0).into()));
+    assert!(line.inside_ray_end(ray, (12.0, 1.0).into()));
+    assert!(!line.inside_ray_end(ray, (12.01, 1.0).into()));
+    assert!(!line.inside_ray_end(ray, (12.00, 0.0).into()));
   }
 }
