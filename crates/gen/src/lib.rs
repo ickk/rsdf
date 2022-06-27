@@ -218,7 +218,12 @@ impl Segment {
     self.distance_to_point_from_t(point, self.closest_param_t(point).clamp(0.0, 1.0))
   }
 
-  // TODO unit test
+  // TODO: unit test
+  fn pseudo_distance_to(&self, point: Point) -> f32 {
+    // this is true for Line, maybe not for others
+    self.distance_to_point_from_t(point, self.closest_param_t(point))
+  }
+
   fn inside_ray_start(&self, ray: Vector, point: Point) -> bool {
     match self {
       &Line{start, ..} => {
@@ -322,7 +327,7 @@ impl From<((f32, f32), (f32, f32))> for CornerRays {
   }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Spline<'a> {
   segments: &'a [Segment],
   channels: Channels,
@@ -334,7 +339,7 @@ impl Spline<'_> {
   fn distance_to(&self, position: Point) -> f32 {
     let mut selected_dist = f32::INFINITY;
     let mut selected_segment = None;
-    let mut selected_t = None;
+    let mut selected_t = None; // simple optimisation
 
     for (s, segment) in self.segments.iter().enumerate() {
       let t = segment.closest_param_t(position);
@@ -364,8 +369,29 @@ impl Spline<'_> {
     }
   }
 
+  // TODO: unit test
   fn signed_pseudo_distance_to(&self, position: Point) -> f32 {
-    0.0
+    let mut selected_dist = f32::INFINITY;
+    let mut selected_segment = None;
+    let mut selected_t = None;
+
+    for (s, segment) in self.segments.iter().enumerate() {
+      let t = segment.closest_param_t(position);
+      let dist = segment.distance_to_point_from_t(position, t.clamp(0.0, 1.0));
+      debug_assert!(dist >= 0.0, "dist must be an absolute value, but was found to be {dist}");
+      if dist < selected_dist {
+        selected_dist = dist;
+        selected_segment = Some(s);
+        selected_t = Some(t);
+      }
+    }
+
+    match selected_segment {
+      Some(x) if x == self.segments.len() || x == 0 => {
+        self.segments[selected_segment.unwrap()].pseudo_distance_to(position)
+      },
+      _ => selected_dist
+    }
   }
 }
 
@@ -414,23 +440,152 @@ pub struct Shape {
 
 impl Shape {
   pub fn sample(&self, position: Point) -> f32 {
-    let mut min_dist = f32::INFINITY;
-    let mut closest_spline = None;
+    // let mut min_dist = f32::INFINITY;
+    // let mut closest_spline = None;
+    let mut closest_spline = Some(self.contours.iter().next().unwrap().splines().next().unwrap());
+    let mut min_dist = closest_spline.clone().unwrap().distance_to(position);
     for contour in self.contours.iter() {
       for spline in contour.splines() {
+        eprintln!("spline: {spline:?}");
         let dist = spline.distance_to(position);
+        eprintln!("dist: {dist}");
         if dist < min_dist
-        && (spline.channels & 0b100).as_bool() {
+        // && (spline.channels & 0b100).as_bool() {
+          {
           min_dist = dist;
           closest_spline = Some(spline);
         }
       }
     }
-    closest_spline
-      .expect(&format!("Couldn't find closest spline for position: {position:?}"))
-      .signed_pseudo_distance_to(position)
+    match closest_spline {
+      // Some(spline) => spline.signed_pseudo_distance_to(position),
+      Some(spline) => spline.distance_to(position),
+      _ => f32::INFINITY,
+    }
+      // .expect(&format!("Couldn't find closest spline for position: {position:?}"))
+      // .signed_pseudo_distance_to(position)
   }
 }
+
+// TODO: cleanup, unit test
+use png;
+use std::io::BufWriter;
+use std::fs::File;
+
+pub struct Image<'a> {
+  encoder: png::Encoder<'a, BufWriter<File>>,
+  data: Vec<u8>,
+  width: usize,
+  height: usize,
+}
+
+impl Image<'_> {
+  fn new(path: &str, size: [usize; 2]) -> Self {
+    let file = File::create(path).unwrap();
+    let buf_writer = BufWriter::new(file);
+    let mut encoder = png::Encoder::new(buf_writer, size[0] as u32, size[1] as u32);
+
+    encoder.set_color(png::ColorType::Rgb);
+    encoder.set_depth(png::BitDepth::Eight);
+
+    let data_length = size[0] * size[1] * 3;
+    let mut data = Vec::with_capacity(data_length);
+    // initialise data
+    data.extend(std::iter::repeat(0).take(data_length));
+
+    Self {
+      data,
+      encoder,
+      width: size[0],
+      height: size[1],
+    }
+  }
+
+  #[inline]
+  fn set_pixel(&mut self, coords: [usize; 2], val: [u8; 3]) {
+    debug_assert!(
+      coords[0] < self.width && coords[1] < self.height,
+      "coordinates given were outside the dimensions of the image"
+    );
+    let location = (coords[1] * self.width + coords[0]) * 3;
+    self.data[location] = val[0];
+    self.data[location + 1] = val[1];
+    self.data[location + 2] = val[2];
+  }
+
+  fn flush(self) {
+    let mut writer = self.encoder.write_header().unwrap();
+    writer.write_image_data(&self.data).unwrap();
+  }
+}
+
+// distanceColor
+// TODO: cleanup, unit test
+const MAX_DISTANCE: f32 = 10.0;
+const MAX_COLOUR: f32 = 256.0;
+#[inline]
+fn distance_color(distance: f32) -> u8 {
+  let distance = distance.clamp(-MAX_DISTANCE, MAX_DISTANCE);
+  (( (distance+MAX_DISTANCE) / (2.0*MAX_DISTANCE) * MAX_COLOUR) - 1.0) as u8
+}
+
+pub fn do_thing() {
+  println!("doing_thing");
+
+  let point_a = Point {x: 1.0, y: 1.0};
+  let point_b = Point {x: 9.0, y: 1.0};
+  let point_c = Point {x: 5.0, y: 9.0};
+
+  let vec_ab = point_a.vector_to(point_b);
+  let vec_bc = point_b.vector_to(point_c);
+  let vec_ca = point_c.vector_to(point_a);
+
+  let ray_a = (vec_ca.norm() + -vec_ab.norm()).norm();
+  let ray_b = (vec_ab.norm() + -vec_bc.norm()).norm();
+  let ray_c = (vec_bc.norm() + -vec_ca.norm()).norm();
+
+  let line_ab = Line {start: point_a, end: point_b};
+  let line_bc = Line {start: point_b, end: point_c};
+  let line_ca = Line {start: point_c, end: point_a};
+
+  let channels_ab: Channels = 0b101.into();
+  let channels_bc: Channels = 0b110.into();
+  let channels_ca: Channels = 0b011.into();
+
+  let corner_rays_ab = CornerRays {start: ray_a, end: ray_b};
+  let corner_rays_bc = CornerRays {start: ray_b, end: ray_c};
+  let corner_rays_ca = CornerRays {start: ray_c, end: ray_a};
+
+  let contour = Contour {
+    segments: vec![line_ab.clone(), line_bc.clone(), line_ca.clone()],
+    corners: Memo::Value(vec![0, 1, 2]),
+    corner_rays: Memo::Value(vec![
+      corner_rays_ab.clone(), corner_rays_bc.clone(), corner_rays_ca.clone()
+    ]),
+    channels: Memo::Value(vec![channels_ab, channels_bc, channels_ca]),
+  };
+
+  let shape = Shape {
+    contours: vec![contour],
+  };
+
+  let mut image = Image::new("test_image.png", [10, 10]);
+
+  for y in 0..image.height {
+    for x in 0..image.width {
+      let point: Point = (x as f32, y as f32).into();
+      let val = shape.sample(point);
+      let val = distance_color(val);
+      image.set_pixel([x, y], [val, 0, 0]);
+    }
+  }
+
+  image.flush();
+
+  panic!()
+}
+
+
 
 #[cfg(test)]
 mod tests {
@@ -702,5 +857,24 @@ mod tests {
     assert!(line.inside_ray_end(ray, (12.0, 1.0).into()));
     assert!(!line.inside_ray_end(ray, (12.01, 1.0).into()));
     assert!(!line.inside_ray_end(ray, (12.00, 0.0).into()));
+  }
+
+  #[test]
+  fn spline_distance_to() {
+    let line = Line {
+      start: (0.0, 0.0).into(),
+      end: (10.0, 0.0).into(),
+    };
+
+    let ray = Vector::from((2.0, 1.0)).norm();
+    assert!(line.inside_ray_end(ray, (10.0, 1.0).into()));
+    assert!(line.inside_ray_end(ray, (12.0, 1.0).into()));
+    assert!(!line.inside_ray_end(ray, (12.01, 1.0).into()));
+    assert!(!line.inside_ray_end(ray, (12.00, 0.0).into()));
+  }
+
+  #[test]
+  fn do_thingy() {
+    do_thing()
   }
 }
