@@ -11,6 +11,7 @@ impl Channels {
 }
 
 impl From<u8> for Channels {
+  #[inline]
   fn from(value: u8) -> Self {
     Self { inner: value }
   }
@@ -19,6 +20,7 @@ impl From<u8> for Channels {
 impl std::ops::BitAnd for Channels {
   type Output = Self;
 
+  #[inline]
   fn bitand(self, rhs: Self) -> Self {
     Self {
       inner: self.inner & rhs.inner,

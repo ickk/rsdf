@@ -4,7 +4,6 @@ mod channels;
 mod contour;
 mod image;
 mod math;
-mod memo;
 mod segment;
 mod shape;
 mod spline;
@@ -12,7 +11,6 @@ pub use channels::*;
 pub use contour::*;
 pub use image::*;
 pub use math::*;
-pub use memo::*;
 pub use segment::*;
 pub use shape::*;
 pub use spline::*;
@@ -76,13 +74,13 @@ pub fn do_thing() {
 
   let contour = Contour {
     segments: vec![line_ab, line_bc, line_ca],
-    corners: Memo::Value(vec![0, 1, 2]),
-    corner_rays: Memo::Value(vec![
+    corners: Some(vec![0, 1, 2]),
+    corner_rays: Some(vec![
       corner_rays_ab,
       corner_rays_bc,
       corner_rays_ca,
     ]),
-    channels: Memo::Value(vec![channels_ab, channels_bc, channels_ca]),
+    channels: Some(vec![channels_ab, channels_bc, channels_ca]),
   };
 
   let shape = Shape {

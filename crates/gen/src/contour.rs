@@ -2,9 +2,9 @@ use crate::*;
 
 pub struct Contour {
   pub segments: Vec<Segment>,
-  pub corners: Memo<Vec<usize>>,
-  pub corner_rays: Memo<Vec<CornerRays>>,
-  pub channels: Memo<Vec<Channels>>,
+  pub corners: Option<Vec<usize>>,
+  pub corner_rays: Option<Vec<CornerRays>>,
+  pub channels: Option<Vec<Channels>>,
   // TODO:
   // Kind: enum{FullySmooth, TearDrop, General}
   // remove corners, add spline_indices
@@ -20,12 +20,12 @@ impl Contour {
 
     izip!(
       std::iter::once(0)
-        .chain(self.corners.unwrap().iter().copied())
+        .chain(self.corners.as_ref().unwrap().iter().copied())
         .chain(std::iter::once(self.segments.len()))
         .dedup()
         .tuple_windows(),
-      self.channels.unwrap().iter().copied(),
-      self.corner_rays.unwrap().iter(),
+      self.channels.as_ref().unwrap().iter().copied(),
+      self.corner_rays.as_ref().unwrap().iter(),
     )
     .map(|((index, index_1), channels, corner_rays)| Spline {
       segments: &self.segments[index..index_1],
@@ -61,9 +61,9 @@ mod tests {
   fn contour_splines_empty() {
     let contour = Contour {
       segments: vec![],
-      corners: Memo::Value(vec![]),
-      channels: Memo::Value(vec![]),
-      corner_rays: Memo::Value(vec![]),
+      corners: Some(vec![]),
+      channels: Some(vec![]),
+      corner_rays: Some(vec![]),
     };
     let splines = contour.splines().collect::<Vec<_>>();
     let expected: Vec<Spline> = vec![];
@@ -116,13 +116,13 @@ mod tests {
 
     let contour = Contour {
       segments: vec![line_ab.clone(), line_bc.clone(), line_ca.clone()],
-      corners: Memo::Value(vec![0, 1, 2]),
-      corner_rays: Memo::Value(vec![
+      corners: Some(vec![0, 1, 2]),
+      corner_rays: Some(vec![
         corner_rays_ab.clone(),
         corner_rays_bc.clone(),
         corner_rays_ca.clone(),
       ]),
-      channels: Memo::Value(vec![channels_ab, channels_bc, channels_ca]),
+      channels: Some(vec![channels_ab, channels_bc, channels_ca]),
     };
 
     let slice_ab = &[line_ab][..];
@@ -185,9 +185,9 @@ mod tests {
 
     let contour = Contour {
       segments: vec![line_ab, line_bc, line_ca],
-      corners: Memo::Value(vec![]),
-      corner_rays: Memo::Value(vec![corner_rays.clone()]),
-      channels: Memo::Value(vec![channels]),
+      corners: Some(vec![]),
+      corner_rays: Some(vec![corner_rays.clone()]),
+      channels: Some(vec![channels]),
     };
 
     let splines = contour.splines().collect::<Vec<_>>();
