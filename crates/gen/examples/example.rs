@@ -2,6 +2,4 @@
 
 use sdf_gen::*;
 
-fn main() {
-  
-}
+fn main() {}

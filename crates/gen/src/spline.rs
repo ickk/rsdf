@@ -17,7 +17,10 @@ impl Spline<'_> {
     for (s, segment) in self.segments.iter().enumerate() {
       let t = segment.closest_param_t(position);
       let dist = segment.distance_to_point_from_t(position, t.clamp(0.0, 1.0));
-      debug_assert!(dist >= 0.0, "dist must be an absolute value, but was found to be {dist}");
+      debug_assert!(
+        dist >= 0.0,
+        "dist must be an absolute value, but was found to be {dist}"
+      );
       if dist < selected_dist {
         selected_dist = dist;
         selected_segment = Some(s);
@@ -28,11 +31,12 @@ impl Spline<'_> {
     if match selected_segment {
       Some(0) => {
         selected_t.unwrap() < 0.0
-        && self.segments[selected_segment.unwrap()].inside_ray_start(self.corner_rays.start, position)
+          && self.segments[selected_segment.unwrap()]
+            .inside_ray_start(self.corner_rays.start, position)
       },
       Some(x) if x == self.segments.len() => {
         selected_t.unwrap() > 1.0
-        && self.segments[selected_segment.unwrap()].inside_ray_end(self.corner_rays.end, position)
+          && self.segments[selected_segment.unwrap()].inside_ray_end(self.corner_rays.end, position)
       },
       _ => true,
     } {
@@ -51,7 +55,10 @@ impl Spline<'_> {
     for (s, segment) in self.segments.iter().enumerate() {
       let t = segment.closest_param_t(position);
       let dist = segment.distance_to_point_from_t(position, t.clamp(0.0, 1.0));
-      debug_assert!(dist >= 0.0, "dist must be an absolute value, but was found to be {dist}");
+      debug_assert!(
+        dist >= 0.0,
+        "dist must be an absolute value, but was found to be {dist}"
+      );
       if dist < selected_dist {
         selected_dist = dist;
         selected_segment = Some(s);
@@ -63,7 +70,7 @@ impl Spline<'_> {
       Some(x) if x == self.segments.len() || x == 0 => {
         self.segments[selected_segment.unwrap()].pseudo_distance_to(position)
       },
-      _ => selected_dist
+      _ => selected_dist,
     }
   }
 }

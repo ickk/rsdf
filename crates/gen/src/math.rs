@@ -12,7 +12,10 @@ impl Point {
 
 impl From<(f32, f32)> for Point {
   fn from(value: (f32, f32)) -> Self {
-    Point {x: value.0, y: value.1}
+    Point {
+      x: value.0,
+      y: value.1,
+    }
   }
 }
 
@@ -48,13 +51,16 @@ pub struct Vector {
 
 impl From<(f32, f32)> for Vector {
   fn from(value: (f32, f32)) -> Self {
-    Vector {x: value.0, y: value.1}
+    Vector {
+      x: value.0,
+      y: value.1,
+    }
   }
 }
 
 impl Vector {
   pub fn abs(self) -> f32 {
-    (self.x*self.x + self.y*self.y).sqrt()
+    (self.x * self.x + self.y * self.y).sqrt()
   }
 
   pub fn norm(self) -> Self {
@@ -128,7 +134,6 @@ impl std::ops::Mul<Vector> for f32 {
   }
 }
 
-
 impl std::ops::Add for Vector {
   type Output = Self;
 
@@ -168,23 +173,23 @@ mod tests {
 
   #[test]
   fn points_vector_to() {
-    let a = Point {x: 1.0, y: 2.0};
-    let b = Point {x: 5.5, y: 1.5};
+    let a = Point { x: 1.0, y: 2.0 };
+    let b = Point { x: 5.5, y: 1.5 };
 
-    assert_eq!(Vector{x: 4.5, y: -0.5}, a.vector_to(b));
+    assert_eq!(Vector { x: 4.5, y: -0.5 }, a.vector_to(b));
   }
 
   #[test]
   fn vector_from_points() {
-    let a = Point {x: 1.0, y: 2.0};
-    let b = Point {x: 5.5, y: 1.5};
+    let a = Point { x: 1.0, y: 2.0 };
+    let b = Point { x: 5.5, y: 1.5 };
 
-    assert_eq!(Vector{x: 4.5, y: -0.5}, Vector::from_points(a, b));
+    assert_eq!(Vector { x: 4.5, y: -0.5 }, Vector::from_points(a, b));
   }
 
   #[test]
   fn vector_from_f32s() {
-    assert_eq!(Vector{x: 3.2, y: -2.3}, Vector::from((3.2, -2.3)));
+    assert_eq!(Vector { x: 3.2, y: -2.3 }, Vector::from((3.2, -2.3)));
   }
 
   #[test]
@@ -197,43 +202,49 @@ mod tests {
 
   #[test]
   fn vector_sub() {
-    let a = Vector {x: 1.0, y: 2.0};
-    let b = Vector {x: 4.0, y: -3.0};
+    let a = Vector { x: 1.0, y: 2.0 };
+    let b = Vector { x: 4.0, y: -3.0 };
 
-    assert_eq!(Vector{x: -3.0, y: 5.0}, a - b);
+    assert_eq!(Vector { x: -3.0, y: 5.0 }, a - b);
   }
 
   fn vector_divf32() {
-    let mut v = Vector {x: 1.0, y: 2.0};
+    let mut v = Vector { x: 1.0, y: 2.0 };
     v = v / 2.0;
 
-    assert_eq!(Vector{x: 0.5, y: 1.0}, v);
+    assert_eq!(Vector { x: 0.5, y: 1.0 }, v);
   }
 
   #[test]
   fn vector_neg() {
-    let v = Vector {x: 1.0, y: 2.0};
-    assert_eq!(Vector{x: -1.0, y: -2.0}, -v);
+    let v = Vector { x: 1.0, y: 2.0 };
+    assert_eq!(Vector { x: -1.0, y: -2.0 }, -v);
   }
 
   #[test]
   fn vector_abs() {
-    let v = Vector {x: 1.0, y: 0.0};
+    let v = Vector { x: 1.0, y: 0.0 };
     assert_eq!(1.0, v.abs());
 
-    let v = Vector {x: 0.0, y: 3.5};
+    let v = Vector { x: 0.0, y: 3.5 };
     assert_eq!(3.5, v.abs());
 
-    let v = Vector {x: 1.0, y: 1.0};
+    let v = Vector { x: 1.0, y: 1.0 };
     assert_eq!(2.0f32.sqrt(), v.abs());
   }
 
   #[test]
   fn vector_norm() {
-    let v = Vector {x: 53.2, y: 0.0};
-    assert_eq!(Vector {x: 1.0, y: 0.0}, v.norm());
+    let v = Vector { x: 53.2, y: 0.0 };
+    assert_eq!(Vector { x: 1.0, y: 0.0 }, v.norm());
 
-    let v = Vector {x: 1.0, y: 1.0};
-    assert_eq!(Vector {x: 1.0/2.0f32.sqrt(), y: 1.0/2.0f32.sqrt()}, v.norm());
+    let v = Vector { x: 1.0, y: 1.0 };
+    assert_eq!(
+      Vector {
+        x: 1.0 / 2.0f32.sqrt(),
+        y: 1.0 / 2.0f32.sqrt()
+      },
+      v.norm()
+    );
   }
 }

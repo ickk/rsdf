@@ -2,8 +2,8 @@ use crate::*;
 
 // TODO: cleanup, unit test
 use png;
-use std::io::BufWriter;
 use std::fs::File;
+use std::io::BufWriter;
 
 pub struct Image<'a> {
   encoder: png::Encoder<'a, BufWriter<File>>,

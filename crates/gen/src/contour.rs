@@ -16,7 +16,7 @@ impl Contour {
   /// Note: Assumes that if there are any corners, then at least one of the corners must be at
   /// segment[0].
   pub fn splines(&self) -> impl Iterator<Item = Spline> {
-    use itertools::{ Itertools, izip };
+    use itertools::{izip, Itertools};
 
     izip!(
       std::iter::once(0)
@@ -27,13 +27,11 @@ impl Contour {
       self.channels.unwrap().iter().copied(),
       self.corner_rays.unwrap().iter(),
     )
-      .map(|((index, index_1), channels, corner_rays)| {
-        Spline {
-          segments: &self.segments[index..index_1],
-          channels,
-          corner_rays,
-        }
-      })
+    .map(|((index, index_1), channels, corner_rays)| Spline {
+      segments: &self.segments[index..index_1],
+      channels,
+      corner_rays,
+    })
   }
 }
 // TODO: generate channels, rays, corners
@@ -74,9 +72,9 @@ mod tests {
 
   #[test]
   fn contour_splines() {
-    let point_a = Point {x: 0.0, y: 0.0};
-    let point_b = Point {x: 1.0, y: 0.0};
-    let point_c = Point {x: 0.5, y: 1.0};
+    let point_a = Point { x: 0.0, y: 0.0 };
+    let point_b = Point { x: 1.0, y: 0.0 };
+    let point_c = Point { x: 0.5, y: 1.0 };
 
     let vec_ab = point_a.vector_to(point_b);
     let vec_bc = point_b.vector_to(point_c);
@@ -86,23 +84,43 @@ mod tests {
     let ray_b = (vec_ab.norm() + -vec_bc.norm()).norm();
     let ray_c = (vec_bc.norm() + -vec_ca.norm()).norm();
 
-    let line_ab = Line {start: point_a, end: point_b};
-    let line_bc = Line {start: point_b, end: point_c};
-    let line_ca = Line {start: point_c, end: point_a};
+    let line_ab = Line {
+      start: point_a,
+      end: point_b,
+    };
+    let line_bc = Line {
+      start: point_b,
+      end: point_c,
+    };
+    let line_ca = Line {
+      start: point_c,
+      end: point_a,
+    };
 
     let channels_ab: Channels = 0b101.into();
     let channels_bc: Channels = 0b110.into();
     let channels_ca: Channels = 0b011.into();
 
-    let corner_rays_ab = CornerRays {start: ray_a, end: ray_b};
-    let corner_rays_bc = CornerRays {start: ray_b, end: ray_c};
-    let corner_rays_ca = CornerRays {start: ray_c, end: ray_a};
+    let corner_rays_ab = CornerRays {
+      start: ray_a,
+      end: ray_b,
+    };
+    let corner_rays_bc = CornerRays {
+      start: ray_b,
+      end: ray_c,
+    };
+    let corner_rays_ca = CornerRays {
+      start: ray_c,
+      end: ray_a,
+    };
 
     let contour = Contour {
       segments: vec![line_ab.clone(), line_bc.clone(), line_ca.clone()],
       corners: Memo::Value(vec![0, 1, 2]),
       corner_rays: Memo::Value(vec![
-        corner_rays_ab.clone(), corner_rays_bc.clone(), corner_rays_ca.clone()
+        corner_rays_ab.clone(),
+        corner_rays_bc.clone(),
+        corner_rays_ca.clone(),
       ]),
       channels: Memo::Value(vec![channels_ab, channels_bc, channels_ca]),
     };
@@ -136,21 +154,33 @@ mod tests {
   #[test]
   fn contour_splines_fully_smooth() {
     // No corners
-    let point_a = Point {x: 0.0, y: 0.0};
-    let point_b = Point {x: 1.0, y: 0.0};
-    let point_c = Point {x: 0.5, y: 1.0};
+    let point_a = Point { x: 0.0, y: 0.0 };
+    let point_b = Point { x: 1.0, y: 0.0 };
+    let point_c = Point { x: 0.5, y: 1.0 };
 
     let vec_ab = Vector::from_points(point_a, point_b);
     let vec_ca = Vector::from_points(point_c, point_a);
 
     let ray_a = (vec_ca.norm() + -vec_ab.norm()).norm();
 
-    let line_ab = Line {start: point_a, end: point_b};
-    let line_bc = Line {start: point_b, end: point_c};
-    let line_ca = Line {start: point_c, end: point_a};
+    let line_ab = Line {
+      start: point_a,
+      end: point_b,
+    };
+    let line_bc = Line {
+      start: point_b,
+      end: point_c,
+    };
+    let line_ca = Line {
+      start: point_c,
+      end: point_a,
+    };
 
     let channels: Channels = 0b111.into();
-    let corner_rays = CornerRays {start: ray_a, end: ray_a};
+    let corner_rays = CornerRays {
+      start: ray_a,
+      end: ray_a,
+    };
     let slice = &[line_ab.clone(), line_bc.clone(), line_ca.clone()][..];
 
     let contour = Contour {
@@ -161,13 +191,11 @@ mod tests {
     };
 
     let splines = contour.splines().collect::<Vec<_>>();
-    let expected: Vec<Spline> = vec![
-      Spline {
-        segments: slice,
-        channels,
-        corner_rays: &corner_rays,
-      }
-    ];
+    let expected: Vec<Spline> = vec![Spline {
+      segments: slice,
+      channels,
+      corner_rays: &corner_rays,
+    }];
 
     assert_eq!(splines, expected);
   }

@@ -29,9 +29,9 @@ impl Segment {
   // TODO: unit test
   pub fn closest_param_t(&self, point: Point) -> f32 {
     match self {
-      &Line{start, end} => {
+      &Line { start, end } => {
         Vector::from_points(start, point).dot(Vector::from_points(start, end))
-        / Vector::from_points(start, end).dot(Vector::from_points(start, end))
+          / Vector::from_points(start, end).dot(Vector::from_points(start, end))
       },
       _ => unimplemented!(),
     }
@@ -40,15 +40,12 @@ impl Segment {
   // TODO: unit test
   pub fn distance_to_point_from_t(&self, point: Point, t: f32) -> f32 {
     match self {
-      &Line{start, end} => {
-        Vector::from_points(
-          start + (t * Vector::from_points(start, end)),
-          point
-        ).abs()
+      &Line { start, end } => {
+        Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs()
       },
 
-      &QuadBezier{..} => unimplemented!(),
-      &CubicBezier{..} => unimplemented!(),
+      &QuadBezier { .. } => unimplemented!(),
+      &CubicBezier { .. } => unimplemented!(),
     }
   }
 
@@ -64,18 +61,14 @@ impl Segment {
 
   pub fn inside_ray_start(&self, ray: Vector, point: Point) -> bool {
     match self {
-      &Line{start, ..} => {
-        Vector::from_points(start, point).signed_area(ray) >= 0.0
-      },
+      &Line { start, .. } => Vector::from_points(start, point).signed_area(ray) >= 0.0,
       _ => unimplemented!(),
     }
   }
 
   pub fn inside_ray_end(&self, ray: Vector, point: Point) -> bool {
     match self {
-      &Line{end, ..} => {
-        Vector::from_points(end, point).signed_area(ray) <= 0.0
-      },
+      &Line { end, .. } => Vector::from_points(end, point).signed_area(ray) <= 0.0,
       _ => unimplemented!(),
     }
   }
