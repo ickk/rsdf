@@ -43,9 +43,7 @@ impl Segment {
       &Line { start, end } => {
         Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs()
       },
-
-      &QuadBezier { .. } => unimplemented!(),
-      &CubicBezier { .. } => unimplemented!(),
+      _ => unimplemented!(),
     }
   }
 

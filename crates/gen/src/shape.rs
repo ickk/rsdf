@@ -11,8 +11,7 @@ impl Shape {
     let mut closest_spline = Some(
       self
         .contours
-        .iter()
-        .next()
+        .first()
         .unwrap()
         .splines()
         .next()

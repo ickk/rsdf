@@ -1,7 +1,6 @@
 use crate::*;
 
 // TODO: cleanup, unit test
-use png;
 use std::fs::File;
 use std::io::BufWriter;
 
@@ -22,9 +21,7 @@ impl Image<'_> {
     encoder.set_depth(png::BitDepth::Eight);
 
     let data_length = size[0] * size[1] * 3;
-    let mut data = Vec::with_capacity(data_length);
-    // initialise data
-    data.extend(std::iter::repeat(0).take(data_length));
+    let mut data = vec![0; data_length];
 
     Self {
       data,

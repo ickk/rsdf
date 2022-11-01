@@ -5,12 +5,14 @@ pub struct Point {
 }
 
 impl Point {
+  #[inline]
   pub fn vector_to(self, end: Point) -> Vector {
     Vector::from_points(self, end)
   }
 }
 
 impl From<(f32, f32)> for Point {
+  #[inline]
   fn from(value: (f32, f32)) -> Self {
     Point {
       x: value.0,
@@ -19,24 +21,24 @@ impl From<(f32, f32)> for Point {
   }
 }
 
-// TODO: unit test
 impl std::ops::Add<Vector> for Point {
-  type Output = Self;
+  type Output = Point;
 
-  fn add(self, rhs: Vector) -> Self {
-    Self {
+  #[inline]
+  fn add(self, rhs: Vector) -> Point {
+    Point {
       x: self.x + rhs.x,
       y: self.y + rhs.y,
     }
   }
 }
 
-// TODO: unit test
 impl std::ops::Sub<Vector> for Point {
-  type Output = Self;
+  type Output = Point;
 
-  fn sub(self, rhs: Vector) -> Self {
-    Self {
+  #[inline]
+  fn sub(self, rhs: Vector) -> Point {
+    Point {
       x: self.x - rhs.x,
       y: self.y - rhs.y,
     }
@@ -50,6 +52,7 @@ pub struct Vector {
 }
 
 impl From<(f32, f32)> for Vector {
+  #[inline]
   fn from(value: (f32, f32)) -> Self {
     Vector {
       x: value.0,
@@ -59,14 +62,17 @@ impl From<(f32, f32)> for Vector {
 }
 
 impl Vector {
+  #[inline]
   pub fn abs(self) -> f32 {
     (self.x * self.x + self.y * self.y).sqrt()
   }
 
+  #[inline]
   pub fn norm(self) -> Self {
     self / self.abs()
   }
 
+  #[inline]
   pub fn from_points(start: Point, end: Point) -> Self {
     Self {
       x: end.x - start.x,
@@ -75,33 +81,28 @@ impl Vector {
   }
 
   /// The dot product of a pair of vectors.
-  // TODO: unit test
+  #[inline]
   pub fn dot(self, rhs: Vector) -> f32 {
     self.x * rhs.x + self.y * rhs.y
   }
 
-  /// The determinant of the matrix formed by the pair of vectors.
-  // TODO: unit test
-  pub fn det(a: Vector, b: Vector) -> f32 {
-    a.x * b.y - a.y * b.x
-  }
-
-  /// An alias for `Vector::det(self, b)`.
-  ///
-  /// Geometrically this gives the signed area of the parallelogram described
-  /// by the pair of vectors.
+  /// Gives the signed area of the parallelogram formed by the pair of vectors.
   ///
   /// If the `b` is counter-clockwise to `self` then the result is
   /// positive, otherwise the result is negative. The area is zero when the
   /// vectors are parallel.
+  ///
+  /// This is the same as the determinant of the matrix formed by the pair of vectors.
+  #[inline]
   pub fn signed_area(self, b: Vector) -> f32 {
-    Vector::det(self, b)
+    self.x * b.y - self.y * b.x
   }
 }
 
 impl std::ops::Div<f32> for Vector {
   type Output = Self;
 
+  #[inline]
   fn div(self, rhs: f32) -> Self {
     Self {
       x: self.x / rhs,
@@ -110,10 +111,10 @@ impl std::ops::Div<f32> for Vector {
   }
 }
 
-// TODO: unit test
 impl std::ops::Mul<f32> for Vector {
   type Output = Self;
 
+  #[inline]
   fn mul(self, rhs: f32) -> Self {
     Self {
       x: self.x * rhs,
@@ -122,10 +123,10 @@ impl std::ops::Mul<f32> for Vector {
   }
 }
 
-// TODO: unit test
 impl std::ops::Mul<Vector> for f32 {
   type Output = Vector;
 
+  #[inline]
   fn mul(self, rhs: Vector) -> Vector {
     Vector {
       x: self * rhs.x,
@@ -137,6 +138,7 @@ impl std::ops::Mul<Vector> for f32 {
 impl std::ops::Add for Vector {
   type Output = Self;
 
+  #[inline]
   fn add(self, rhs: Vector) -> Self {
     Self {
       x: self.x + rhs.x,
@@ -148,6 +150,7 @@ impl std::ops::Add for Vector {
 impl std::ops::Sub for Vector {
   type Output = Self;
 
+  #[inline]
   fn sub(self, rhs: Vector) -> Self {
     Self {
       x: self.x - rhs.x,
@@ -159,6 +162,7 @@ impl std::ops::Sub for Vector {
 impl std::ops::Neg for Vector {
   type Output = Self;
 
+  #[inline]
   fn neg(self) -> Self {
     Self {
       x: -self.x,
@@ -208,11 +212,21 @@ mod tests {
     assert_eq!(Vector { x: -3.0, y: 5.0 }, a - b);
   }
 
+  #[test]
   fn vector_divf32() {
     let mut v = Vector { x: 1.0, y: 2.0 };
     v = v / 2.0;
 
     assert_eq!(Vector { x: 0.5, y: 1.0 }, v);
+  }
+
+  #[test]
+  fn vector_mulf32() {
+    let v = Vector { x: 3.0, y: -8.0 };
+    assert_eq!(v * 3.2, Vector { x: 9.6, y: -25.6 });
+
+    let v = Vector { x: 2.3, y: 16.1 };
+    assert_eq!(2.0 * v, Vector { x: 4.6, y: 32.2 });
   }
 
   #[test]
@@ -246,5 +260,55 @@ mod tests {
       },
       v.norm()
     );
+  }
+
+  #[test]
+  fn add_vector_to_point() {
+    let v = Vector { x: 1.0, y: 3.5 };
+    let p = Point { x: 0.0, y: 0.0 };
+    assert_eq!(p + v, Point { x: 1.0, y: 3.5 });
+
+    let v = Vector { x: 1.0, y: 3.5 };
+    let p = Point { x: 5.0, y: 2.0 };
+    assert_eq!(p + v, Point { x: 6.0, y: 5.5 });
+  }
+
+  #[test]
+  fn sub_vector_from_point() {
+    let v = Vector { x: 1.0, y: 3.5 };
+    let p = Point { x: 0.0, y: 0.0 };
+    assert_eq!(p - v, Point { x: -1.0, y: -3.5 });
+
+    let v = Vector { x: 1.0, y: 3.5 };
+    let p = Point { x: 5.0, y: 2.0 };
+    assert_eq!(p - v, Point { x: 4.0, y: -1.5 });
+  }
+
+  #[test]
+  fn vector_dot() {
+    let v1 = Vector { x: 1.0, y: 3.0 };
+    let v2 = Vector { x: -3.0, y: 3.8 };
+    assert_eq!(v1.dot(v2), 8.4);
+    assert_eq!(v2.dot(v1), 8.4);
+
+    let v1 = Vector { x: 4.0, y: 0.0 };
+    let v2 = Vector { x: 0.0, y: 3.0 };
+    assert_eq!(v1.dot(v2), 0.0);
+
+    let v1 = Vector { x: 2.0, y: 1.0 };
+    let v2 = Vector { x: 1.0, y: 2.0 };
+    assert_eq!(v1.dot(v2), 4.0);
+  }
+
+  #[test]
+  fn vector_signed_area() {
+    let v1 = Vector { x: 1.0, y: 0.0 };
+    let v2 = Vector { x: 1.0, y: 1.0 };
+    assert_eq!(v1.signed_area(v2), 1.0);
+    assert_eq!(v2.signed_area(v1), -1.0);
+
+    let v1 = Vector { x: 1.0, y: 4.0 };
+    let v2 = Vector { x: 3.0, y: 4.0 };
+    assert_eq!(v1.signed_area(v2), -8.0);
   }
 }

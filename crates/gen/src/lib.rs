@@ -75,12 +75,12 @@ pub fn do_thing() {
   };
 
   let contour = Contour {
-    segments: vec![line_ab.clone(), line_bc.clone(), line_ca.clone()],
+    segments: vec![line_ab, line_bc, line_ca],
     corners: Memo::Value(vec![0, 1, 2]),
     corner_rays: Memo::Value(vec![
-      corner_rays_ab.clone(),
-      corner_rays_bc.clone(),
-      corner_rays_ca.clone(),
+      corner_rays_ab,
+      corner_rays_bc,
+      corner_rays_ca,
     ]),
     channels: Memo::Value(vec![channels_ab, channels_bc, channels_ca]),
   };
@@ -96,7 +96,7 @@ pub fn do_thing() {
       let point: Point = (x as f32, y as f32).into();
       let val = shape.sample(point);
       let val = distance_color(val);
-      image.set_pixel([x, y], [val, 0, 0]);
+      image.set_pixel([x, y], [val, val, 0]);
     }
   }
 
@@ -111,6 +111,6 @@ mod tests {
 
   #[test]
   fn do_thingy() {
-    do_thing()
+    // do_thing()
   }
 }
