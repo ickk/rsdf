@@ -8,15 +8,7 @@ impl Shape {
   pub fn sample(&self, position: Point) -> f32 {
     // let mut min_dist = f32::INFINITY;
     // let mut closest_spline = None;
-    let mut closest_spline = Some(
-      self
-        .contours
-        .first()
-        .unwrap()
-        .splines()
-        .next()
-        .unwrap(),
-    );
+    let mut closest_spline = Some(self.contours.first().unwrap().splines().next().unwrap());
     let mut min_dist = closest_spline.clone().unwrap().distance_to(position);
     for contour in self.contours.iter() {
       for spline in contour.splines() {

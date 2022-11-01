@@ -75,11 +75,7 @@ pub fn do_thing() {
   let contour = Contour {
     segments: vec![line_ab, line_bc, line_ca],
     corners: Some(vec![0, 1, 2]),
-    corner_rays: Some(vec![
-      corner_rays_ab,
-      corner_rays_bc,
-      corner_rays_ca,
-    ]),
+    corner_rays: Some(vec![corner_rays_ab, corner_rays_bc, corner_rays_ca]),
     channels: Some(vec![channels_ab, channels_bc, channels_ca]),
   };
 

@@ -16,7 +16,7 @@ impl Spline<'_> {
 
     for (s, segment) in self.segments.iter().enumerate() {
       let t = segment.closest_param_t(position);
-      let dist = segment.distance_to_point_from_t(position, t.clamp(0.0, 1.0));
+      let dist = segment.distance_to_point_at_t(position, t.clamp(0.0, 1.0));
       debug_assert!(
         dist >= 0.0,
         "dist must be an absolute value, but was found to be {dist}"
@@ -54,7 +54,7 @@ impl Spline<'_> {
 
     for (s, segment) in self.segments.iter().enumerate() {
       let t = segment.closest_param_t(position);
-      let dist = segment.distance_to_point_from_t(position, t.clamp(0.0, 1.0));
+      let dist = segment.distance_to_point_at_t(position, t.clamp(0.0, 1.0));
       debug_assert!(
         dist >= 0.0,
         "dist must be an absolute value, but was found to be {dist}"
