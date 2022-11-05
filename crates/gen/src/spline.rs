@@ -21,6 +21,7 @@ impl Spline<'_> {
         dist >= 0.0,
         "dist must be an absolute value, but was found to be {dist}"
       );
+      eprintln!("! dist: {:?}", dist);
       if dist < selected_dist {
         selected_dist = dist;
         selected_segment = Some(s);
@@ -28,22 +29,39 @@ impl Spline<'_> {
       }
     }
 
-    if match selected_segment {
-      Some(0) => {
-        selected_t.unwrap() < 0.0
-          && self.segments[selected_segment.unwrap()]
-            .inside_ray_start(self.corner_rays.start, position)
-      },
-      Some(x) if x == self.segments.len() => {
-        selected_t.unwrap() > 1.0
-          && self.segments[selected_segment.unwrap()].inside_ray_end(self.corner_rays.end, position)
-      },
-      _ => true,
-    } {
-      selected_dist
+    if self.segments.len() == 1 {
+      if (selected_t.unwrap() < 0.0
+        && !self.segments[selected_segment.unwrap()].inside_ray_start(self.corner_rays.start, position))
+        || (selected_t.unwrap() > 1.0 && !self.segments[selected_segment.unwrap()].inside_ray_end(self.corner_rays.end, position)) {
+        f32::INFINITY
+      } else {
+        0.0
+      }
     } else {
-      f32::INFINITY
+      unimplemented!()
     }
+
+    // eprintln!("!t: {:?}", selected_t);
+    // if match selected_segment {
+    //   Some(0) => {
+    //     eprintln!("start: t<0: {:?} inside_ray_start: {:?}", selected_t.unwrap() < 0.0, self.segments[selected_segment.unwrap()]
+    //         .inside_ray_start(self.corner_rays.start, position));
+
+    //     selected_t.unwrap() < 0.0
+    //       && self.segments[selected_segment.unwrap()]
+    //         .inside_ray_start(self.corner_rays.start, position)
+    //   },
+    //   Some(x) if x == self.segments.len() => {
+    //     selected_t.unwrap() > 1.0
+    //       && self.segments[selected_segment.unwrap()].inside_ray_end(self.corner_rays.end, position)
+    //   },
+    //   _ => true,
+    // } {
+    //   eprintln!("!! Selected_dist: {:?}", selected_dist);
+    //   selected_dist
+    // } else {
+    //   f32::INFINITY
+    // }
   }
 
   // TODO: unit test

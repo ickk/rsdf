@@ -49,12 +49,17 @@ impl Segment {
     match self {
       &Line { start, end } => {
         // Get the length of the vector from the line at `t` and the point.
-        Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs()
+        eprintln!("  line: {:?}", self);
+        eprintln!("  point: {:?}", point);
+        let r = Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs();
+        eprintln!("  distance_to: {:?}", r);
+        r
       },
       _ => unimplemented!(),
     }
   }
 
+  /// The distance from a Point to the Segment.
   pub fn distance_to(&self, point: Point) -> f32 {
     self.distance_to_point_at_t(point, self.closest_param_t(point).clamp(0.0, 1.0))
   }
@@ -69,14 +74,14 @@ impl Segment {
 
   pub fn inside_ray_start(&self, ray: Vector, point: Point) -> bool {
     match self {
-      &Line { start, .. } => Vector::from_points(start, point).signed_area(ray) >= 0.0,
+      &Line { start, .. } => Vector::from_points(start, point).signed_area(ray) <= 0.0,
       _ => unimplemented!(),
     }
   }
 
   pub fn inside_ray_end(&self, ray: Vector, point: Point) -> bool {
     match self {
-      &Line { end, .. } => Vector::from_points(end, point).signed_area(ray) <= 0.0,
+      &Line { end, .. } => Vector::from_points(end, point).signed_area(ray) >= 0.0,
       _ => unimplemented!(),
     }
   }

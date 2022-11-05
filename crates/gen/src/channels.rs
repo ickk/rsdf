@@ -1,4 +1,4 @@
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Channels {
   inner: u8,
 }
@@ -25,6 +25,12 @@ impl std::ops::BitAnd for Channels {
     Self {
       inner: self.inner & rhs.inner,
     }
+  }
+}
+
+impl std::fmt::Debug for Channels {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    write!(f, "{:08b}", self.inner)
   }
 }
 
