@@ -23,8 +23,8 @@ fn do_thing_2() {
 
   eprintln!("{bytes:?}");
 
-  let sdf_width = 30;
-  let sdf_height = 30;
+  let sdf_width = 60;
+  let sdf_height = 60;
 
   let mut image = Image::new("view_image.png", [1000, 1000]);
   for y in 0..image.height {
@@ -64,16 +64,25 @@ fn do_thing_2() {
         [result[0] as u8, result[1] as u8, result[2] as u8]
       };
 
-      let val = std::cmp::max(std::cmp::min(pixel[0], pixel[1]), std::cmp::min(pixel[0], pixel[2]));
+      let val = if (pixel[0] <= pixel[1] && pixel[1] <= pixel[2])
+      || (pixel[2] <= pixel[1] && pixel[1] <= pixel[0]) {
+        pixel[1]
+      } else if (pixel[0] <= pixel[2] && pixel[2] <= pixel[1])
+      || (pixel[1] <= pixel[2] && pixel[2] <= pixel[0]) {
+        pixel[2]
+      } else /*(pixel[1] <= pixel[0] && pixel[0] <= pixel[2])
+        || (pixel[2] <= pixel[0] && pixel[0] <= pixel[0]*/ {
+        pixel[0]
+      };
 
       let mut new_val = 0;
-      if val > 125 {
+      if val > 121 {
         new_val = 255;
       }
       image.set_pixel([x,y], [new_val, new_val, new_val]);
 
 
-      image.set_pixel([x, y], pixel)
+      // image.set_pixel([x, y], pixel)
     }
   }
   image.flush();

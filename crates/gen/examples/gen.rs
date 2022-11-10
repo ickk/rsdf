@@ -12,9 +12,9 @@ pub fn do_thing_hollow() {
   println!("doing_thing");
 
   let contour_1 = {
-    let point_a = Point { x: 7.0, y: 4.0 };
-    let point_b = Point { x: 23.0, y: 4.0 };
-    let point_c = Point { x: 15.0, y: 20.0 };
+    let point_a = Point { x: 14.0, y: 8.0 };
+    let point_b = Point { x: 46.0, y: 8.0 };
+    let point_c = Point { x: 30.0, y: 40.0 };
 
     let vec_ab = point_a.vector_to(point_b);
     let vec_bc = point_b.vector_to(point_c);
@@ -63,9 +63,9 @@ pub fn do_thing_hollow() {
   };
 
   let contour_2 = {
-    let point_d = Point { x: 10.0, y: 7.0 };
-    let point_e = Point { x: 20.0, y: 7.0 };
-    let point_f = Point { x: 15.0, y: 17.0 };
+    let point_d = Point { x: 20.0, y: 11.5 };
+    let point_e = Point { x: 40.0, y: 11.5 };
+    let point_f = Point { x: 30.0, y: 34.0 };
 
     let vec_df = point_d.vector_to(point_f);
     let vec_fe = point_f.vector_to(point_e);
@@ -119,7 +119,7 @@ pub fn do_thing_hollow() {
     contours: vec![contour_1, contour_2],
   };
 
-  let mut image = Image::new("test_image.png", [30, 30]);
+  let mut image = Image::new("test_image.png", [60, 60]);
 
   let mut min = 0.;
   let mut max = f32::MAX;
