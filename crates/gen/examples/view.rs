@@ -64,21 +64,16 @@ fn do_thing_2() {
         [result[0] as u8, result[1] as u8, result[2] as u8]
       };
 
+      let val = std::cmp::max(std::cmp::min(pixel[0], pixel[1]), std::cmp::min(pixel[0], pixel[2]));
 
-      let r = pixel[0] != 0;
-      let g = pixel[1] != 0;
-      let b = pixel[2] != 0;
-      let val = std::cmp::max(std::cmp::max(pixel[0], pixel[1]), pixel[2]);
       let mut new_val = 0;
-      if r && g || r && b || g && b {
-        if val > 110 {
-          new_val = 255;
-        }
+      if val > 125 {
+        new_val = 255;
       }
-      image.set_pixel([x,y], [new_val, new_val, new_val])
+      image.set_pixel([x,y], [new_val, new_val, new_val]);
 
 
-      // image.set_pixel([x, y], pixel)
+      image.set_pixel([x, y], pixel)
     }
   }
   image.flush();
