@@ -97,6 +97,12 @@ impl Vector {
   pub fn signed_area(self, b: Vector) -> f32 {
     self.x * b.y - self.y * b.x
   }
+
+  /// Gives the area of the parallelogram formed by the pair of vectors.
+  #[inline]
+  pub fn area(self, b: Vector) -> f32 {
+    (self.x * b.y - self.y * b.x).abs()
+  }
 }
 
 impl std::ops::Div<f32> for Vector {

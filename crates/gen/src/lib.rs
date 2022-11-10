@@ -17,7 +17,9 @@ pub use spline::*;
 
 // distanceColor
 // TODO: cleanup, unit test
-const MAX_DISTANCE: f32 = 10.0;
+// const MAX_DISTANCE: f32 = 10.0;
+// const MAX_COLOUR: f32 = 256.0;
+const MAX_DISTANCE: f32 = 5.;
 const MAX_COLOUR: f32 = 256.0;
 #[inline]
 pub fn distance_color(distance: f32) -> u8 {
