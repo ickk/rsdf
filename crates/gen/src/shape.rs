@@ -6,23 +6,17 @@ pub struct Shape {
 
 impl Shape {
   pub fn sample(&self, position: Point) -> [f32; 3] {
-    let mut closest_spline = self.contours.first().unwrap().splines().next().unwrap();
-    let mut min_dist = closest_spline.clone().distance_to(position);
-
     let mut red_dist = f32::INFINITY;
     let mut red_sdist = f32::INFINITY;
     let mut red_ortho = 0.;
-    let mut red_spline = &self.contours.first().unwrap().splines().next().unwrap();
 
     let mut green_dist = f32::INFINITY;
     let mut green_sdist = f32::INFINITY;
     let mut green_ortho = 0.;
-    let mut green_spline = &self.contours.first().unwrap().splines().next().unwrap();
 
     let mut blue_dist = f32::INFINITY;
     let mut blue_sdist = f32::INFINITY;
     let mut blue_ortho = 0.;
-    let mut blue_spline = &self.contours.first().unwrap().splines().next().unwrap();
 
     for contour in self.contours.iter() {
       for spline in contour.splines() {
@@ -33,7 +27,6 @@ impl Shape {
           red_dist = dist.dist;
           red_ortho = dist.orthogonality;
           red_sdist = dist.sdist;
-          red_spline = &spline;
         }
 
         if (spline.channels & 0b010.into()).as_bool()
@@ -41,7 +34,6 @@ impl Shape {
           green_dist = dist.dist;
           green_ortho = dist.orthogonality;
           green_sdist = dist.sdist;
-          green_spline = &spline;
         }
 
         if (spline.channels & 0b001.into()).as_bool()
@@ -49,7 +41,6 @@ impl Shape {
           blue_dist = dist.dist;
           blue_ortho = dist.orthogonality;
           blue_sdist = dist.sdist;
-          blue_spline = &spline;
         }
       }
     }
