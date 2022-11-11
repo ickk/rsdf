@@ -60,7 +60,7 @@ impl Segment {
         let b = Vector::from_points(start, point);
         1f32.copysign(a.signed_area(b))
       },
-      _ => unimplemented!()
+      _ => unimplemented!(),
     }
   }
 
@@ -70,7 +70,9 @@ impl Segment {
     match self {
       &Line { start, end } => Vector::from_points(start, end),
       &QuadBezier { start, control, .. } => Vector::from_points(start, control),
-      &CubicBezier { start, control_1, .. } => Vector::from_points(start, control_1),
+      &CubicBezier {
+        start, control_1, ..
+      } => Vector::from_points(start, control_1),
     }
   }
 
@@ -87,14 +89,14 @@ impl Segment {
   #[inline]
   pub fn start(&self) -> Point {
     match self {
-      &Line{ start, .. } | &QuadBezier{ start, .. } | &CubicBezier{ start, .. } => start
+      &Line { start, .. } | &QuadBezier { start, .. } | &CubicBezier { start, .. } => start,
     }
   }
 
   #[inline]
   pub fn end(&self) -> Point {
     match self {
-      &Line{ end, .. } | &QuadBezier{ end, .. } | &CubicBezier{ end, .. } => end
+      &Line { end, .. } | &QuadBezier { end, .. } | &CubicBezier { end, .. } => end,
     }
   }
 }

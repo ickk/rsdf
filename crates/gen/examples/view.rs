@@ -1,6 +1,6 @@
+use itertools::izip;
 use sdf_gen::*;
 use std::{env, fs::File};
-use itertools::izip;
 
 fn main() {
   let Some(filename) = env::args().nth(1) else { panic!("No filename given") };
@@ -46,7 +46,9 @@ fn main() {
         let t3 = sample_image(x1 as usize, y2 as usize).map(|v| (1. - wx) * wy * v as f32);
         let t4 = sample_image(x2 as usize, y2 as usize).map(|v| wx * wy * v as f32);
 
-        let result: Vec<f32> = izip!(t1, t2, t3, t4).map(|(v1, v2, v3, v4)| v1 + v2 + v3 + v4).collect();
+        let result: Vec<f32> = izip!(t1, t2, t3, t4)
+          .map(|(v1, v2, v3, v4)| v1 + v2 + v3 + v4)
+          .collect();
 
         [result[0] as u8, result[1] as u8, result[2] as u8]
       };

@@ -23,21 +23,25 @@ impl Shape {
         let dist = spline.distance_to(position);
 
         if (spline.channels & 0b100.into()).as_bool()
-        && (dist.dist < red_dist || dist.dist == red_dist && (dist.orthogonality > red_ortho)) {
+          && (dist.dist < red_dist || dist.dist == red_dist && (dist.orthogonality > red_ortho))
+        {
           red_dist = dist.dist;
           red_ortho = dist.orthogonality;
           red_sdist = dist.sdist;
         }
 
         if (spline.channels & 0b010.into()).as_bool()
-        && (dist.dist < green_dist || dist.dist == green_dist && (dist.orthogonality > green_ortho)) {
+          && (dist.dist < green_dist
+            || dist.dist == green_dist && (dist.orthogonality > green_ortho))
+        {
           green_dist = dist.dist;
           green_ortho = dist.orthogonality;
           green_sdist = dist.sdist;
         }
 
         if (spline.channels & 0b001.into()).as_bool()
-        && (dist.dist < blue_dist || dist.dist == blue_dist && (dist.orthogonality > blue_ortho)) {
+          && (dist.dist < blue_dist || dist.dist == blue_dist && (dist.orthogonality > blue_ortho))
+        {
           blue_dist = dist.dist;
           blue_ortho = dist.orthogonality;
           blue_sdist = dist.sdist;

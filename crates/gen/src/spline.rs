@@ -18,10 +18,7 @@ pub struct Distance {
 /// Since the area of the parallelogram defined by two normalised vectors is at a maximum (1) when
 /// they are orthogonal and a minimum (0) when they are parallel, we use this area as the measure.
 fn orthogonality(a: Vector, b: Vector) -> f32 {
-  Vector::area(
-    a.norm(),
-    b.norm(),
-  )
+  Vector::area(a.norm(), b.norm())
 }
 
 struct Selected {
@@ -37,7 +34,7 @@ impl Spline<'_> {
       let t = self.segments[0].closest_param_t(position);
       let dist = self.segments[0].distance_to_point_at_t(position, t);
 
-      Selected {s, t, dist}
+      Selected { s, t, dist }
     };
 
     for (s, segment) in self.segments.iter().enumerate().skip(1) {
@@ -57,11 +54,17 @@ impl Spline<'_> {
     if selected.t < 0.0 {
       sdist = selected.dist.copysign(segment.sign_at_point(position));
       selected.dist = segment.distance_to_point_at_t(position, 0.0);
-      orth = orthogonality(segment.extension_start(), Vector::from_points(segment.start(), position));
+      orth = orthogonality(
+        segment.extension_start(),
+        Vector::from_points(segment.start(), position),
+      );
     } else if selected.t > 1.0 {
       sdist = selected.dist.copysign(segment.sign_at_point(position));
       selected.dist = segment.distance_to_point_at_t(position, 1.0);
-      orth = orthogonality(segment.extension_end(), Vector::from_points(segment.end(), position));
+      orth = orthogonality(
+        segment.extension_end(),
+        Vector::from_points(segment.end(), position),
+      );
     } else {
       sdist = selected.dist.copysign(segment.sign_at_point(position));
       orth = 1.0 // this is a largely bogus value but it shouldn't be needed in this case
