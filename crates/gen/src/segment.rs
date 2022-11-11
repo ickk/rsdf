@@ -46,7 +46,9 @@ impl Segment {
   pub fn distance_to_point_at_t(&self, point: Point, t: f32) -> f32 {
     match *self {
       Line { start, end } => {
-        Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs()
+        let sign = self.sign_at_point(point);
+
+        Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs().copysign(sign)
       },
       _ => unimplemented!(),
     }

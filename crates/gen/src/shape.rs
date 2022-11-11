@@ -5,50 +5,59 @@ pub struct Shape {
 }
 
 impl Shape {
-  pub fn sample(&self, position: Point) -> [f32; 3] {
-    let mut red_dist = f32::INFINITY;
-    let mut red_sdist = f32::INFINITY;
-    let mut red_ortho = 0.;
+  pub fn sample(&self, point: Point) -> [f32; 3] {
+    let mut red_distance = f32::INFINITY;
+    let mut red_signed_pseudo_distance = f32::INFINITY;
+    let mut red_orthogonality = 0.;
 
-    let mut green_dist = f32::INFINITY;
-    let mut green_sdist = f32::INFINITY;
-    let mut green_ortho = 0.;
+    let mut green_distance = f32::INFINITY;
+    let mut green_signed_pseudo_distance = f32::INFINITY;
+    let mut green_orthogonality = 0.;
 
-    let mut blue_dist = f32::INFINITY;
-    let mut blue_sdist = f32::INFINITY;
-    let mut blue_ortho = 0.;
+    let mut blue_distance = f32::INFINITY;
+    let mut blue_signed_pseudo_distance = f32::INFINITY;
+    let mut blue_orthogonality = 0.;
 
     for contour in self.contours.iter() {
       for spline in contour.splines() {
-        let dist = spline.distance_to(position);
+        let spline_distance = spline.distance_to(point);
 
         if (spline.channels & 0b100.into()).as_bool()
-          && (dist.dist < red_dist || dist.dist == red_dist && (dist.orthogonality > red_ortho))
+          && (spline_distance.distance.abs() < red_distance
+            || spline_distance.distance == red_distance
+              && (spline_distance.orthogonality > red_orthogonality))
         {
-          red_dist = dist.dist;
-          red_ortho = dist.orthogonality;
-          red_sdist = dist.sdist;
+          red_distance = spline_distance.distance;
+          red_orthogonality = spline_distance.orthogonality;
+          red_signed_pseudo_distance = spline_distance.signed_pseudo_distance;
         }
 
         if (spline.channels & 0b010.into()).as_bool()
-          && (dist.dist < green_dist
-            || dist.dist == green_dist && (dist.orthogonality > green_ortho))
+          && (spline_distance.distance < green_distance
+            || spline_distance.distance == green_distance
+              && (spline_distance.orthogonality > green_orthogonality))
         {
-          green_dist = dist.dist;
-          green_ortho = dist.orthogonality;
-          green_sdist = dist.sdist;
+          green_distance = spline_distance.distance;
+          green_orthogonality = spline_distance.orthogonality;
+          green_signed_pseudo_distance = spline_distance.signed_pseudo_distance;
         }
 
         if (spline.channels & 0b001.into()).as_bool()
-          && (dist.dist < blue_dist || dist.dist == blue_dist && (dist.orthogonality > blue_ortho))
+          && (spline_distance.distance < blue_distance
+            || spline_distance.distance == blue_distance
+              && (spline_distance.orthogonality > blue_orthogonality))
         {
-          blue_dist = dist.dist;
-          blue_ortho = dist.orthogonality;
-          blue_sdist = dist.sdist;
+          blue_distance = spline_distance.distance;
+          blue_orthogonality = spline_distance.orthogonality;
+          blue_signed_pseudo_distance = spline_distance.signed_pseudo_distance;
         }
       }
     }
 
-    [red_sdist, green_sdist, blue_sdist]
+    [
+      red_signed_pseudo_distance,
+      green_signed_pseudo_distance,
+      blue_signed_pseudo_distance,
+    ]
   }
 }

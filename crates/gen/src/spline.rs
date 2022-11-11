@@ -8,8 +8,8 @@ pub struct Spline<'a> {
 
 #[derive(Debug)]
 pub struct Distance {
-  pub dist: f32,
-  pub sdist: f32,
+  pub distance: f32,
+  pub signed_pseudo_distance: f32,
   pub orthogonality: f32,
 }
 
@@ -17,63 +17,59 @@ pub struct Distance {
 ///
 /// Since the area of the parallelogram defined by two normalised vectors is at a maximum (1) when
 /// they are orthogonal and a minimum (0) when they are parallel, we use this area as the measure.
+#[inline]
 fn orthogonality(a: Vector, b: Vector) -> f32 {
   Vector::area(a.norm(), b.norm())
 }
 
-struct Selected {
-  dist: f32,
-  t: f32,
-  s: usize,
-}
-
 impl Spline<'_> {
-  pub fn distance_to(&self, position: Point) -> Distance {
-    let mut selected = {
-      let s = 0;
-      let t = self.segments[0].closest_param_t(position);
-      let dist = self.segments[0].distance_to_point_at_t(position, t);
-
-      Selected { s, t, dist }
-    };
-
+  /// Get a `Distance` object at the point containing the signed distance, the signed pseudo
+  /// distance and a measure of orthogonality.
+  pub fn distance_to(&self, point: Point) -> Distance {
+    // find the segment with the smallest pseudo distance to the point
+    let mut selected_segment = 0;
+    let mut selected_t = self.segments[0].closest_param_t(point);
+    let mut selected_signed_pseudo_distance = self.segments[0].distance_to_point_at_t(point, selected_t);
     for (s, segment) in self.segments.iter().enumerate().skip(1) {
-      let t = segment.closest_param_t(position);
-      let dist = segment.distance_to_point_at_t(position, t);
+      let t = segment.closest_param_t(point);
+      let signed_pseudo_distance = segment.distance_to_point_at_t(point, t);
 
-      if dist < selected.dist {
-        selected.t = t;
-        selected.dist = dist;
-        selected.s = s;
+      if signed_pseudo_distance.abs() < selected_signed_pseudo_distance.abs() {
+        selected_t = t;
+        selected_signed_pseudo_distance = signed_pseudo_distance;
+        selected_segment = s;
       }
     }
 
-    let segment = &self.segments[selected.s];
-    let orth: f32;
-    let sdist: f32;
-    if selected.t < 0.0 {
-      sdist = selected.dist.copysign(segment.sign_at_point(position));
-      selected.dist = segment.distance_to_point_at_t(position, 0.0);
-      orth = orthogonality(
-        segment.extension_start(),
-        Vector::from_points(segment.start(), position),
-      );
-    } else if selected.t > 1.0 {
-      sdist = selected.dist.copysign(segment.sign_at_point(position));
-      selected.dist = segment.distance_to_point_at_t(position, 1.0);
-      orth = orthogonality(
-        segment.extension_end(),
-        Vector::from_points(segment.end(), position),
-      );
+    // if the t value lays outside the interval [0, 1] then we need clamp it to get the distance.
+    if selected_t < 0.0 {
+      Distance {
+        distance: self.segments[selected_segment]
+          .distance_to_point_at_t(point, 0.0)
+          .abs(),
+        signed_pseudo_distance: selected_signed_pseudo_distance,
+        orthogonality: orthogonality(
+          self.segments[selected_segment].extension_start(),
+          Vector::from_points(self.segments[selected_segment].start(), point),
+        ),
+      }
+    } else if selected_t > 1.0 {
+      Distance {
+        distance: self.segments[selected_segment]
+          .distance_to_point_at_t(point, 1.0)
+          .abs(),
+        signed_pseudo_distance: selected_signed_pseudo_distance,
+        orthogonality: orthogonality(
+          self.segments[selected_segment].extension_end(),
+          Vector::from_points(self.segments[selected_segment].end(), point),
+        ),
+      }
     } else {
-      sdist = selected.dist.copysign(segment.sign_at_point(position));
-      orth = 1.0 // this is a largely bogus value but it shouldn't be needed in this case
-    };
-
-    Distance {
-      dist: selected.dist,
-      sdist,
-      orthogonality: orth,
+      Distance {
+        distance: selected_signed_pseudo_distance.abs(),
+        signed_pseudo_distance: selected_signed_pseudo_distance,
+        orthogonality: 1.0, // we don't care about orthogonality in this case
+      }
     }
   }
 }
