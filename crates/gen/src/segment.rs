@@ -74,7 +74,7 @@ impl Segment {
 
   /// The vector continuing in the direction of the start of the segment.
   #[inline]
-  pub fn extension_start(&self) -> Vector {
+  pub fn vector_start(&self) -> Vector {
     match *self {
       Line { start, end } => Vector::from_points(start, end),
       QuadBezier { start, control, .. } => Vector::from_points(start, control),
@@ -86,7 +86,7 @@ impl Segment {
 
   /// The vector continuing in the direction of the end of the segment.
   #[inline]
-  pub fn extension_end(&self) -> Vector {
+  pub fn vector_end(&self) -> Vector {
     match *self {
       Line { start, end } => Vector::from_points(start, end),
       QuadBezier { control, end, .. } => Vector::from_points(control, end),

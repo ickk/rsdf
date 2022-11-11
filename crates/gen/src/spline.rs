@@ -46,12 +46,12 @@ impl Spline<'_> {
     // the measure of orthogonality depends on the end of the spline the point is nearest.
     let orthogonality = if selected_t < 0.0 {
       orthogonality(
-        self.segments[selected_segment].extension_start(),
+        self.segments[selected_segment].vector_start(),
         Vector::from_points(self.segments[selected_segment].start(), point),
       )
     } else if selected_t > 1.0 {
       orthogonality(
-        self.segments[selected_segment].extension_end(),
+        self.segments[selected_segment].vector_end(),
         Vector::from_points(self.segments[selected_segment].end(), point),
       )
     } else {
