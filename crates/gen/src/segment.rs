@@ -41,26 +41,32 @@ impl Segment {
     }
   }
 
-  /// Distance between some point `P` and the segment at time `t`.
+  /// Distance between some point `P` and the segment at time `t`. `t` is clamped to [0, 1];
   #[inline]
   pub fn distance_to_point_at_t(&self, point: Point, t: f32) -> f32 {
+    let t = t.clamp(0., 1.);
+
     match *self {
       Line { start, end } => {
-        let sign = self.sign_at_point(point);
-
-        Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs().copysign(sign)
+        Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs()
       },
       _ => unimplemented!(),
     }
   }
 
   #[inline]
-  pub fn sign_at_point(&self, point: Point) -> f32 {
+  pub fn signed_pseudo_distance_to_point_at_t(&self, point: Point, t: f32) -> f32 {
     match *self {
       Line { start, end } => {
-        let a = Vector::from_points(start, end);
-        let b = Vector::from_points(start, point);
-        1f32.copysign(a.signed_area(b))
+        let signed_area = {
+          let a = Vector::from_points(start, end);
+          let b = Vector::from_points(start, point);
+          a.signed_area(b)
+        };
+
+        Vector::from_points(start + (t * Vector::from_points(start, end)), point)
+          .abs()
+          .copysign(signed_area)
       },
       _ => unimplemented!(),
     }
