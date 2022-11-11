@@ -1,18 +1,16 @@
-#![allow(unused)]
-
 use sdf_gen::*;
+use std::env;
 
 fn main() {
+  let Some(filename) = env::args().nth(1) else { panic!("No output filename given") };
+  eprintln!("{filename:?}");
+
   use Segment::*;
 
   let contour_1 = {
     let point_a = Point { x: 14.0, y: 14.0 };
     let point_b = Point { x: 46.0, y: 8.0 };
     let point_c = Point { x: 30.0, y: 40.0 };
-
-    let vec_ab = point_a.vector_to(point_b);
-    let vec_bc = point_b.vector_to(point_c);
-    let vec_ca = point_c.vector_to(point_a);
 
     let line_ab = Line {
       start: point_a,
@@ -43,10 +41,6 @@ fn main() {
     let point_e = Point { x: 40.0, y: 11.5 };
     let point_f = Point { x: 30.0, y: 34.0 };
 
-    let vec_df = point_d.vector_to(point_f);
-    let vec_fe = point_f.vector_to(point_e);
-    let vec_ed = point_e.vector_to(point_d);
-
     let line_df = Line {
       start: point_d,
       end: point_f,
@@ -75,7 +69,7 @@ fn main() {
     contours: vec![contour_1, contour_2],
   };
 
-  let mut image = Image::new("test_image.png", [40, 40]);
+  let mut image = Image::new(&filename, [40, 40]);
   let start_time = std::time::Instant::now();
   for y in 0..image.height {
     for x in 0..image.width {

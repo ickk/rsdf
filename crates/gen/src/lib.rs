@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 mod channels;
 mod contour;
 mod image;

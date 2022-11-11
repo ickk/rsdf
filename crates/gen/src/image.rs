@@ -1,5 +1,3 @@
-use crate::*;
-
 use std::fs::File;
 use std::io::BufWriter;
 
@@ -20,7 +18,7 @@ impl Image<'_> {
     encoder.set_depth(png::BitDepth::Eight);
 
     let data_length = size[0] * size[1] * 3;
-    let mut data = vec![0; data_length];
+    let data = vec![0; data_length];
 
     Self {
       data,

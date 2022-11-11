@@ -27,8 +27,8 @@ impl Segment {
   /// Note this param may be in the range (-inf, inf). i.e. it's not restricted by the end-points.
   #[inline]
   pub fn closest_param_t(&self, point: Point) -> f32 {
-    match self {
-      &Line { start, end } => {
+    match *self {
+      Line { start, end } => {
         // We can find the closest point on the line by projecting the point onto the line.
         let s_p = Vector::from_points(start, point);
         let s_e_norm = Vector::from_points(start, end).norm();
@@ -44,8 +44,8 @@ impl Segment {
   /// Distance between some point `P` and the segment at time `t`.
   #[inline]
   pub fn distance_to_point_at_t(&self, point: Point, t: f32) -> f32 {
-    match self {
-      &Line { start, end } => {
+    match *self {
+      Line { start, end } => {
         Vector::from_points(start + (t * Vector::from_points(start, end)), point).abs()
       },
       _ => unimplemented!(),
@@ -54,8 +54,8 @@ impl Segment {
 
   #[inline]
   pub fn sign_at_point(&self, point: Point) -> f32 {
-    match self {
-      &Line { start, end } => {
+    match *self {
+      Line { start, end } => {
         let a = Vector::from_points(start, end);
         let b = Vector::from_points(start, point);
         1f32.copysign(a.signed_area(b))
@@ -67,10 +67,10 @@ impl Segment {
   /// The vector continuing in the direction of the start of the segment.
   #[inline]
   pub fn extension_start(&self) -> Vector {
-    match self {
-      &Line { start, end } => Vector::from_points(start, end),
-      &QuadBezier { start, control, .. } => Vector::from_points(start, control),
-      &CubicBezier {
+    match *self {
+      Line { start, end } => Vector::from_points(start, end),
+      QuadBezier { start, control, .. } => Vector::from_points(start, control),
+      CubicBezier {
         start, control_1, ..
       } => Vector::from_points(start, control_1),
     }
@@ -79,24 +79,24 @@ impl Segment {
   /// The vector continuing in the direction of the end of the segment.
   #[inline]
   pub fn extension_end(&self) -> Vector {
-    match self {
-      &Line { start, end } => Vector::from_points(start, end),
-      &QuadBezier { control, end, .. } => Vector::from_points(control, end),
-      &CubicBezier { control_2, end, .. } => Vector::from_points(control_2, end),
+    match *self {
+      Line { start, end } => Vector::from_points(start, end),
+      QuadBezier { control, end, .. } => Vector::from_points(control, end),
+      CubicBezier { control_2, end, .. } => Vector::from_points(control_2, end),
     }
   }
 
   #[inline]
   pub fn start(&self) -> Point {
-    match self {
-      &Line { start, .. } | &QuadBezier { start, .. } | &CubicBezier { start, .. } => start,
+    match *self {
+      Line { start, .. } | QuadBezier { start, .. } | CubicBezier { start, .. } => start,
     }
   }
 
   #[inline]
   pub fn end(&self) -> Point {
-    match self {
-      &Line { end, .. } | &QuadBezier { end, .. } | &CubicBezier { end, .. } => end,
+    match *self {
+      Line { end, .. } | QuadBezier { end, .. } | CubicBezier { end, .. } => end,
     }
   }
 }

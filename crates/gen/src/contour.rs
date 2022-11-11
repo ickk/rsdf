@@ -4,9 +4,6 @@ pub struct Contour {
   pub segments: Vec<Segment>,
   pub corners: Option<Vec<usize>>,
   pub channels: Option<Vec<Channels>>,
-  // TODO:
-  // Kind: enum{FullySmooth, TearDrop, General}
-  // remove corners, add spline_indices
 }
 
 impl Contour {
@@ -31,7 +28,6 @@ impl Contour {
     })
   }
 }
-// remove Memo. Use ShapeBuilder that returns a well-formed Shape on `.finalise()`.
 
 #[cfg(test)]
 mod tests {
@@ -55,10 +51,6 @@ mod tests {
     let point_a = Point { x: 0.0, y: 0.0 };
     let point_b = Point { x: 1.0, y: 0.0 };
     let point_c = Point { x: 0.5, y: 1.0 };
-
-    let vec_ab = point_a.vector_to(point_b);
-    let vec_bc = point_b.vector_to(point_c);
-    let vec_ca = point_c.vector_to(point_a);
 
     let line_ab = Line {
       start: point_a,
@@ -112,9 +104,6 @@ mod tests {
     let point_a = Point { x: 0.0, y: 0.0 };
     let point_b = Point { x: 1.0, y: 0.0 };
     let point_c = Point { x: 0.5, y: 1.0 };
-
-    let vec_ab = Vector::from_points(point_a, point_b);
-    let vec_ca = Vector::from_points(point_c, point_a);
 
     let line_ab = Line {
       start: point_a,
