@@ -22,7 +22,7 @@ impl Shape {
       for spline in contour.splines() {
         let spline_distance = spline.distance_to(point);
 
-        if (spline.channels & 0b100.into()).as_bool()
+        if (spline.channels & Channels::new(0b100)).as_bool()
           && (spline_distance.distance.abs() < red_distance
             || spline_distance.distance == red_distance
               && (spline_distance.orthogonality > red_orthogonality))
@@ -32,7 +32,7 @@ impl Shape {
           red_signed_pseudo_distance = spline_distance.signed_pseudo_distance;
         }
 
-        if (spline.channels & 0b010.into()).as_bool()
+        if (spline.channels & Channels::new(0b010)).as_bool()
           && (spline_distance.distance < green_distance
             || spline_distance.distance == green_distance
               && (spline_distance.orthogonality > green_orthogonality))
@@ -42,7 +42,7 @@ impl Shape {
           green_signed_pseudo_distance = spline_distance.signed_pseudo_distance;
         }
 
-        if (spline.channels & 0b001.into()).as_bool()
+        if (spline.channels & Channels::new(0b001)).as_bool()
           && (spline_distance.distance < blue_distance
             || spline_distance.distance == blue_distance
               && (spline_distance.orthogonality > blue_orthogonality))

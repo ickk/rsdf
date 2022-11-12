@@ -5,6 +5,13 @@ pub struct Channels {
 
 impl Channels {
   #[inline]
+  pub fn new(byte: u8) -> Self {
+    Channels {
+      inner: byte
+    }
+  }
+
+  #[inline]
   pub fn as_bool(&self) -> bool {
     self.inner != 0
   }
