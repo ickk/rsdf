@@ -6,9 +6,7 @@ pub struct Channels {
 impl Channels {
   #[inline]
   pub fn new(byte: u8) -> Self {
-    Channels {
-      inner: byte
-    }
+    Channels { inner: byte }
   }
 
   #[inline]

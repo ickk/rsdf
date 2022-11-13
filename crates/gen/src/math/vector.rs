@@ -1,64 +1,9 @@
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub struct Point {
-  pub x: f32,
-  pub y: f32,
-}
-
-impl Point {
-  #[inline]
-  pub fn vector_to(self, end: Point) -> Vector {
-    Vector::from_points(self, end)
-  }
-}
-
-impl From<(f32, f32)> for Point {
-  #[inline]
-  fn from(value: (f32, f32)) -> Self {
-    Point {
-      x: value.0,
-      y: value.1,
-    }
-  }
-}
-
-impl std::ops::Add<Vector> for Point {
-  type Output = Point;
-
-  #[inline]
-  fn add(self, rhs: Vector) -> Point {
-    Point {
-      x: self.x + rhs.x,
-      y: self.y + rhs.y,
-    }
-  }
-}
-
-impl std::ops::Sub<Vector> for Point {
-  type Output = Point;
-
-  #[inline]
-  fn sub(self, rhs: Vector) -> Point {
-    Point {
-      x: self.x - rhs.x,
-      y: self.y - rhs.y,
-    }
-  }
-}
+use super::*;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Vector {
   pub x: f32,
   pub y: f32,
-}
-
-impl From<(f32, f32)> for Vector {
-  #[inline]
-  fn from(value: (f32, f32)) -> Self {
-    Vector {
-      x: value.0,
-      y: value.1,
-    }
-  }
 }
 
 impl Vector {
@@ -102,6 +47,16 @@ impl Vector {
   #[inline]
   pub fn area(self, b: Vector) -> f32 {
     (self.x * b.y - self.y * b.x).abs()
+  }
+}
+
+impl From<(f32, f32)> for Vector {
+  #[inline]
+  fn from(value: (f32, f32)) -> Self {
+    Vector {
+      x: value.0,
+      y: value.1,
+    }
   }
 }
 
@@ -177,33 +132,41 @@ impl std::ops::Neg for Vector {
   }
 }
 
+impl std::ops::Add<Point> for Vector {
+  type Output = Point;
+
+  #[inline]
+  fn add(self, rhs: Point) -> Point {
+    Point {
+      x: self.x + rhs.x,
+      y: self.y + rhs.y,
+    }
+  }
+}
+
+impl std::ops::Sub<Point> for Vector {
+  type Output = Point;
+
+  #[inline]
+  fn sub(self, rhs: Point) -> Point {
+    Point {
+      x: self.x - rhs.x,
+      y: self.y - rhs.y,
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
 
   #[test]
-  fn points_vector_to() {
-    let a = Point { x: 1.0, y: 2.0 };
-    let b = Point { x: 5.5, y: 1.5 };
-
-    assert_eq!(Vector { x: 4.5, y: -0.5 }, a.vector_to(b));
-  }
-
-  #[test]
-  fn vector_from_points() {
-    let a = Point { x: 1.0, y: 2.0 };
-    let b = Point { x: 5.5, y: 1.5 };
-
-    assert_eq!(Vector { x: 4.5, y: -0.5 }, Vector::from_points(a, b));
-  }
-
-  #[test]
-  fn vector_from_f32s() {
+  fn from_f32s() {
     assert_eq!(Vector { x: 3.2, y: -2.3 }, Vector::from((3.2, -2.3)));
   }
 
   #[test]
-  fn vector_add() {
+  fn add() {
     let a: Vector = (1.0, 2.0).into();
     let b: Vector = (4.0, -3.0).into();
 
@@ -211,7 +174,7 @@ mod tests {
   }
 
   #[test]
-  fn vector_sub() {
+  fn sub() {
     let a = Vector { x: 1.0, y: 2.0 };
     let b = Vector { x: 4.0, y: -3.0 };
 
@@ -219,7 +182,23 @@ mod tests {
   }
 
   #[test]
-  fn vector_divf32() {
+  fn add_point() {
+    let a: Vector = (1.0, 2.0).into();
+    let b: Point = (4.0, -3.0).into();
+
+    assert_eq!(Point::from((5.0, -1.0)), a + b);
+  }
+
+  #[test]
+  fn sub_point() {
+    let a = Vector { x: 1.0, y: 2.0 };
+    let b = Point { x: 4.0, y: -3.0 };
+
+    assert_eq!(Point { x: -3.0, y: 5.0 }, a - b);
+  }
+
+  #[test]
+  fn divf32() {
     let mut v = Vector { x: 1.0, y: 2.0 };
     v = v / 2.0;
 
@@ -227,7 +206,7 @@ mod tests {
   }
 
   #[test]
-  fn vector_mulf32() {
+  fn mulf32() {
     let v = Vector { x: 3.0, y: -8.0 };
     assert_eq!(v * 3.2, Vector { x: 9.6, y: -25.6 });
 
@@ -236,13 +215,13 @@ mod tests {
   }
 
   #[test]
-  fn vector_neg() {
+  fn neg() {
     let v = Vector { x: 1.0, y: 2.0 };
     assert_eq!(Vector { x: -1.0, y: -2.0 }, -v);
   }
 
   #[test]
-  fn vector_abs() {
+  fn abs() {
     let v = Vector { x: 1.0, y: 0.0 };
     assert_eq!(1.0, v.abs());
 
@@ -254,7 +233,7 @@ mod tests {
   }
 
   #[test]
-  fn vector_norm() {
+  fn norm() {
     let v = Vector { x: 53.2, y: 0.0 };
     assert_eq!(Vector { x: 1.0, y: 0.0 }, v.norm());
 
@@ -269,29 +248,7 @@ mod tests {
   }
 
   #[test]
-  fn add_vector_to_point() {
-    let v = Vector { x: 1.0, y: 3.5 };
-    let p = Point { x: 0.0, y: 0.0 };
-    assert_eq!(p + v, Point { x: 1.0, y: 3.5 });
-
-    let v = Vector { x: 1.0, y: 3.5 };
-    let p = Point { x: 5.0, y: 2.0 };
-    assert_eq!(p + v, Point { x: 6.0, y: 5.5 });
-  }
-
-  #[test]
-  fn sub_vector_from_point() {
-    let v = Vector { x: 1.0, y: 3.5 };
-    let p = Point { x: 0.0, y: 0.0 };
-    assert_eq!(p - v, Point { x: -1.0, y: -3.5 });
-
-    let v = Vector { x: 1.0, y: 3.5 };
-    let p = Point { x: 5.0, y: 2.0 };
-    assert_eq!(p - v, Point { x: 4.0, y: -1.5 });
-  }
-
-  #[test]
-  fn vector_dot() {
+  fn dot() {
     let v1 = Vector { x: 1.0, y: 3.0 };
     let v2 = Vector { x: -3.0, y: 3.8 };
     assert_eq!(v1.dot(v2), 8.4);
@@ -307,7 +264,7 @@ mod tests {
   }
 
   #[test]
-  fn vector_signed_area() {
+  fn signed_area() {
     let v1 = Vector { x: 1.0, y: 0.0 };
     let v2 = Vector { x: 1.0, y: 1.0 };
     assert_eq!(v1.signed_area(v2), 1.0);
@@ -316,5 +273,13 @@ mod tests {
     let v1 = Vector { x: 1.0, y: 4.0 };
     let v2 = Vector { x: 3.0, y: 4.0 };
     assert_eq!(v1.signed_area(v2), -8.0);
+  }
+
+  #[test]
+  fn from_points() {
+    let a = Point { x: 1.0, y: 2.0 };
+    let b = Point { x: 5.5, y: 1.5 };
+
+    assert_eq!(Vector { x: 4.5, y: -0.5 }, Vector::from_points(a, b));
   }
 }

@@ -10,38 +10,31 @@ fn main() {
   let contour_1 = {
     let point_a = Point { x: 14.0, y: 14.0 };
     let point_b = Point { x: 46.0, y: 8.0 };
-    let point_bb = Point { x: 46.0, y: 20.0 };
-    let point_c = Point { x: 30.0, y: 40.0 };
+    let point_c = Point { x: 46.0, y: 20.0 };
+    let point_d = Point { x: 30.0, y: 40.0 };
 
-    let line_ab = Line {
+    let segment_ab = Line {
       start: point_a,
       end: point_b,
     };
-    // let line_bc = Line {
-    //   start: point_b,
-    //   end: point_c,
-    // };
-    let line_bb = Line {
+    let segment_bd = QuadBezier {
       start: point_b,
-      end: point_bb,
+      control: point_c,
+      end: point_d,
     };
-    let line_bbc = Line {
-      start: point_bb,
-      end: point_c
-    };
-    let line_ca = Line {
-      start: point_c,
+    let segment_da = Line {
+      start: point_d,
       end: point_a,
     };
 
     let channels_ab: Channels = 0b101.into();
-    let channels_bc: Channels = 0b110.into();
-    let channels_ca: Channels = 0b011.into();
+    let channels_bd: Channels = 0b110.into();
+    let channels_da: Channels = 0b011.into();
 
     Contour {
-      segments: vec![line_ab, line_bb, line_bbc, line_ca],
+      segments: vec![segment_ab, segment_bd, segment_da],
       corners: Some(vec![0, 1, 3]),
-      channels: Some(vec![channels_ab, channels_bc, channels_ca]),
+      channels: Some(vec![channels_ab, channels_bd, channels_da]),
     }
   };
 
