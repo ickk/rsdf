@@ -42,10 +42,11 @@ impl Segment {
         control,
         end,
       } => {
+        // some of this can be cached as it doesn't rely on the `point`.
         // vectors
         let p0 = Vector::from_points(start, point);
         let p1 = Vector::from_points(start, control);
-        let p2 = Vector::from_points(end, control) + Vector::from_points(control, start);
+        let p2 = end.as_vector() - 2. * control.as_vector() + start.as_vector();
         // The roots of the cubic equation yield `t` when the vector from `t` to `point` is
         // perpendicular to the quadratic bezier.
         assert!(p2.abs() > 0.0001, "quadratic bezier is degenerate"); // the control falls directly between start & end. i.e. a line.
@@ -56,19 +57,30 @@ impl Segment {
         let d = -1. * p1.dot(p0);
 
         // these need to be clamped, and we need to take the extensions into account
-        let (t0, t1, t2) = cubic_roots(a, b, c, d);
-        let (d0, d1, d2) = (
-          self.distance_to_point_at_t(point, t0),
-          self.distance_to_point_at_t(point, t1),
-          self.distance_to_point_at_t(point, t2),
-        );
-
-        if d0 <= d1 && d0 <= d2 {
-          t0
-        } else if d1 <= d0 && d1 <= d2 {
-          t1
-        } else {
-          t2
+        let roots = cubic_roots(a, b, c, d);
+        match roots {
+          Roots::One(t0) => t0,
+          Roots::Two(t0, t1) => {
+            let d0 = self.distance_to_point_at_t(point, t0);
+            let d1 = self.distance_to_point_at_t(point, t1);
+            if d0 <= d1 {
+              t0
+            } else {
+              t1
+            }
+          },
+          Roots::Three(t0, t1, t2) => {
+            let d0 = self.distance_to_point_at_t(point, t0);
+            let d1 = self.distance_to_point_at_t(point, t1);
+            let d2 = self.distance_to_point_at_t(point, t2);
+            if d0 <= d1 && d0 <= d2 {
+              t0
+            } else if d1 <= d0 && d1 <= d2 {
+              t1
+            } else {
+              t2
+            }
+          },
         }
       },
       _ => unimplemented!(),

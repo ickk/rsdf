@@ -16,6 +16,14 @@ impl Point {
   pub fn vector_to(self, end: Point) -> Vector {
     Vector::from_points(self, end)
   }
+
+  #[inline]
+  pub fn as_vector(self) -> Vector {
+    Vector {
+      x: self.x,
+      y: self.y,
+    }
+  }
 }
 
 impl From<(f32, f32)> for Point {
