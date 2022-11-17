@@ -41,7 +41,7 @@ pub fn cubic_roots(a: f32, b: f32, c: f32, d: f32) -> Roots {
     let t2 = l * (m - 2. * n).cos();
 
     return Roots::Three(x_from_t(t0), x_from_t(t1), x_from_t(t2));
-  } else if discriminant == 0. {
+  } else if discriminant == 0. { // these equalities should probably be slightly more forgiving
     // multiple root
     if p == 0. {
       // triple root at 0
