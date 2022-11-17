@@ -57,10 +57,10 @@ impl Segment {
         let d = -1. * p1.dot(p0);
 
         // these need to be clamped, and we need to take the extensions into account
-        let roots = cubic_roots(a, b, c, d);
+        let roots = cubic::roots(a, b, c, d);
         match roots {
-          Roots::One(t0) => t0,
-          Roots::Two(t0, t1) => {
+          cubic::Roots::One(t0) => t0,
+          cubic::Roots::Two(t0, t1) => {
             let d0 = self.distance_to_point_at_t(point, t0);
             let d1 = self.distance_to_point_at_t(point, t1);
             if d0 <= d1 {
@@ -69,7 +69,7 @@ impl Segment {
               t1
             }
           },
-          Roots::Three(t0, t1, t2) => {
+          cubic::Roots::Three(t0, t1, t2) => {
             let d0 = self.distance_to_point_at_t(point, t0);
             let d1 = self.distance_to_point_at_t(point, t1);
             let d2 = self.distance_to_point_at_t(point, t2);
