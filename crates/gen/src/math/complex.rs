@@ -245,8 +245,10 @@ impl std::ops::Div<Complex> for Complex {
   #[inline]
   fn div(self, rhs: Self) -> Complex {
     let denominator = rhs.real * rhs.real + rhs.imaginary * rhs.imaginary;
-    let real = (self.real * rhs.real + self.imaginary * rhs.imaginary) / denominator;
-    let imaginary = (self.imaginary * rhs.real - self.real * rhs.imaginary) / denominator;
+    let real =
+      (self.real * rhs.real + self.imaginary * rhs.imaginary) / denominator;
+    let imaginary =
+      (self.imaginary * rhs.real - self.real * rhs.imaginary) / denominator;
     Complex { real, imaginary }
   }
 }
@@ -280,7 +282,8 @@ mod tests {
 
   fn approx_eq(z: Complex, w: Complex) -> bool {
     dbg!(z, w);
-    (z.real - w.real).abs() < 0.0001 && (z.imaginary - w.imaginary).abs() < 0.0001
+    (z.real - w.real).abs() < 0.0001
+      && (z.imaginary - w.imaginary).abs() < 0.0001
   }
 
   #[test]

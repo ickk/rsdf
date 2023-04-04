@@ -3,9 +3,14 @@ use sdf_gen::*;
 use std::{env, fs::File};
 
 fn main() {
-  let Some(input_filename) = env::args().nth(1) else { panic!("No input filename given") };
+  let Some(input_filename) = env::args().nth(1) else {
+    panic!("No input filename given")
+  };
   eprintln!("{input_filename:?}");
-  let Some(output_filename) = env::args().nth(2) else { panic!("No output filename given") };
+
+  let Some(output_filename) = env::args().nth(2) else {
+    panic!("No output filename given")
+  };
   eprintln!("{output_filename:?}");
 
   let decoder = png::Decoder::new(File::open(input_filename).unwrap());
@@ -43,10 +48,14 @@ fn main() {
         let wx = x_sdf_p - x1 - 0.5;
         let wy = y_sdf_p - y1 - 0.5;
 
-        let t1 = sample_sdf(x1 as usize, y1 as usize).map(|v| (1. - wx) * (1. - wy) * v as f32);
-        let t2 = sample_sdf(x2 as usize, y1 as usize).map(|v| wx * (1. - wy) * v as f32);
-        let t3 = sample_sdf(x1 as usize, y2 as usize).map(|v| (1. - wx) * wy * v as f32);
-        let t4 = sample_sdf(x2 as usize, y2 as usize).map(|v| wx * wy * v as f32);
+        let t1 = sample_sdf(x1 as usize, y1 as usize)
+          .map(|v| (1. - wx) * (1. - wy) * v as f32);
+        let t2 = sample_sdf(x2 as usize, y1 as usize)
+          .map(|v| wx * (1. - wy) * v as f32);
+        let t3 = sample_sdf(x1 as usize, y2 as usize)
+          .map(|v| (1. - wx) * wy * v as f32);
+        let t4 =
+          sample_sdf(x2 as usize, y2 as usize).map(|v| wx * wy * v as f32);
 
         let result: Vec<f32> = izip!(t1, t2, t3, t4)
           .map(|(v1, v2, v3, v4)| v1 + v2 + v3 + v4)

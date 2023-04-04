@@ -46,7 +46,8 @@ impl Segment {
         // vectors
         let p0 = Vector::from_points(start, point);
         let p1 = Vector::from_points(start, control);
-        let p2 = end.as_vector() - 2. * control.as_vector() + start.as_vector();
+        let p2 =
+          end.as_vector() - 2. * control.as_vector() + start.as_vector();
         // The roots of the cubic equation yield `t` when the vector from `t` to `point` is
         // perpendicular to the quadratic bezier.
         assert!(p2.abs() > 0.0001, "quadratic bezier is degenerate"); // the control falls directly between start & end. i.e. a line.
@@ -104,7 +105,10 @@ impl Segment {
       } => {
         let b = start
           + 2. * t * Vector::from_points(start, control)
-          + t * t * (Vector::from_points(end, control) + Vector::from_points(control, start));
+          + t
+            * t
+            * (Vector::from_points(end, control)
+              + Vector::from_points(control, start));
         Vector::from_points(b, point).abs()
       },
       _ => unimplemented!(),
@@ -112,7 +116,11 @@ impl Segment {
   }
 
   #[inline]
-  pub fn signed_pseudo_distance_to_point_at_t(&self, point: Point, t: f32) -> f32 {
+  pub fn signed_pseudo_distance_to_point_at_t(
+    &self,
+    point: Point,
+    t: f32,
+  ) -> f32 {
     match *self {
       Line { start, end } => {
         let signed_area = {
@@ -121,9 +129,12 @@ impl Segment {
           a.signed_area(b)
         };
 
-        Vector::from_points(start + (t * Vector::from_points(start, end)), point)
-          .abs()
-          .copysign(signed_area)
+        Vector::from_points(
+          start + (t * Vector::from_points(start, end)),
+          point,
+        )
+        .abs()
+        .copysign(signed_area)
       },
       QuadBezier {
         start,
@@ -155,7 +166,10 @@ impl Segment {
         } else {
           let b = start
             + 2. * t * Vector::from_points(start, control)
-            + t * t * (Vector::from_points(end, control) + Vector::from_points(control, start));
+            + t
+              * t
+              * (Vector::from_points(end, control)
+                + Vector::from_points(control, start));
           Vector::from_points(b, point).abs().copysign(signed_area)
         }
       },
@@ -181,21 +195,27 @@ impl Segment {
     match *self {
       Line { start, end } => Vector::from_points(start, end),
       QuadBezier { control, end, .. } => Vector::from_points(control, end),
-      CubicBezier { control_2, end, .. } => Vector::from_points(control_2, end),
+      CubicBezier { control_2, end, .. } => {
+        Vector::from_points(control_2, end)
+      },
     }
   }
 
   #[inline]
   pub fn start(&self) -> Point {
     match *self {
-      Line { start, .. } | QuadBezier { start, .. } | CubicBezier { start, .. } => start,
+      Line { start, .. }
+      | QuadBezier { start, .. }
+      | CubicBezier { start, .. } => start,
     }
   }
 
   #[inline]
   pub fn end(&self) -> Point {
     match *self {
-      Line { end, .. } | QuadBezier { end, .. } | CubicBezier { end, .. } => end,
+      Line { end, .. } | QuadBezier { end, .. } | CubicBezier { end, .. } => {
+        end
+      },
     }
   }
 }

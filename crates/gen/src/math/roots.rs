@@ -19,7 +19,8 @@ pub mod cubic {
     let x_from_t = |t| t - b / (3. * a);
 
     let p = (3. * a * c - b * b) / (3. * a * a);
-    let q = (2. * b.powi(3) - 9. * a * b * c + 27. * a * a * d) / (27. * a.powi(3));
+    let q =
+      (2. * b.powi(3) - 9. * a * b * c + 27. * a * a * d) / (27. * a.powi(3));
 
     let discriminant = (q * q) / 4. + p.powi(3) / 27.;
     if discriminant > 0. {

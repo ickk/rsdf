@@ -58,8 +58,8 @@ impl Spline<'_> {
       1.0
     };
 
-    let signed_pseudo_distance =
-      self.segments[selected_segment].signed_pseudo_distance_to_point_at_t(point, selected_t);
+    let signed_pseudo_distance = self.segments[selected_segment]
+      .signed_pseudo_distance_to_point_at_t(point, selected_t);
 
     Distance {
       distance: selected_distance,

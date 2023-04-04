@@ -12,7 +12,8 @@ impl Image<'_> {
   pub fn new(path: &str, size: [usize; 2]) -> Self {
     let file = File::create(path).unwrap();
     let buf_writer = BufWriter::new(file);
-    let mut encoder = png::Encoder::new(buf_writer, size[0] as u32, size[1] as u32);
+    let mut encoder =
+      png::Encoder::new(buf_writer, size[0] as u32, size[1] as u32);
 
     encoder.set_color(png::ColorType::Rgb);
     encoder.set_depth(png::BitDepth::Eight);

@@ -39,7 +39,8 @@ impl Shape {
         {
           green_distance = spline_distance.distance;
           green_orthogonality = spline_distance.orthogonality;
-          green_signed_pseudo_distance = spline_distance.signed_pseudo_distance;
+          green_signed_pseudo_distance =
+            spline_distance.signed_pseudo_distance;
         }
 
         if (spline.channels & Channels::new(0b001)).as_bool()
