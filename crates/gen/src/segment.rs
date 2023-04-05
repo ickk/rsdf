@@ -51,7 +51,8 @@ impl Segment {
         // The roots of the cubic equation yield `t` when the vector from `t` to `point` is
         // perpendicular to the quadratic bezier.
         assert!(p2.abs() > 0.0001, "quadratic bezier is degenerate"); // the control falls directly between start & end. i.e. a line.
-                                                                      // a*t^3 + b*t^2 + c*t + d = 0
+
+        // a*t^3 + b*t^2 + c*t + d = 0
         let a = p2.dot(p2);
         let b = 3. * p1.dot(p2);
         let c = 2. * p1.dot(p1) - p2.dot(p0);
