@@ -1,45 +1,40 @@
 use super::*;
 use arrayvec::ArrayVec;
 
-// DEGREE = TERMS - 1
-// TERMS: NonZeroUsize
-// -> [f32; DEGREE]
+/// Find all of the roots of a polynomial using Aberth's method.
+///
+/// Polynomial of the form f(x) = a + b*x + c*x^2 + d*x^3 + ...
+/// `coefficients` is a slice containing the coefficients [a, b, c, d, ...]
+/// When two successive iterations produce roots with less than `epsilon`
+/// delta, the roots are returned.
 fn aberth<const TERMS: usize>(
   coefficients: &[f32; TERMS],
+  epsilon: f32,
 ) -> ArrayVec<Complex, TERMS> {
-  let dydx = derivative(coefficients);
-
-  // initial guesses
+  let dydx = &derivative(coefficients);
   let mut zs = initial_guesses(coefficients);
+  let mut new_zs = zs.clone();
 
-  for _ in 0..20 {
-    // TODO: most of this could be left at iterators.
-    // Only `roots` is reused / indexed
-    let p_of_zs: ArrayVec<Complex, TERMS> = zs
-      .iter()
-      .map(|&z| sample_polynomial(coefficients, z))
-      .collect();
-    let dydx_of_zs: ArrayVec<Complex, TERMS> =
-      zs.iter().map(|&z| sample_polynomial(&dydx, z)).collect();
+  'iteration: for _ in 0..1000 {
+    for i in 0..zs.len() {
+      let p_of_z = sample_polynomial(coefficients, zs[i]);
+      let dydx_of_z = sample_polynomial(dydx, zs[i]);
+      let sum = (0..zs.len())
+        .filter(|&k| k != i)
+        .fold(Complex::ZERO, |acc, k| acc + 1.0 / (zs[i] - zs[k]));
 
-    let sum_terms: ArrayVec<Complex, TERMS> = (0..zs.len())
-      .map(|i| {
-        (0..zs.len())
-          .filter(|&k| k != i)
-          .fold(Complex::ZERO, |acc, k| acc + 1.0 / (zs[i] - zs[k]))
-      })
-      .collect();
+      new_zs[i] = zs[i] + p_of_z / (p_of_z * sum - dydx_of_z);
+    }
+    std::mem::swap(&mut zs, &mut new_zs);
 
-    let delta_zs: ArrayVec<Complex, TERMS> = (0..zs.len())
-      .map(|i| p_of_zs[i] / (p_of_zs[i] * sum_terms[i] - dydx_of_zs[i]))
-      .collect();
-
-    zs.iter_mut()
-      .zip(delta_zs)
-      .for_each(|(z, delta_z)| *z = *z + delta_z);
+    for (&z, &new_z) in std::iter::zip(&zs, &new_zs) {
+      if !z.approx_eq(new_z, epsilon) {
+        continue 'iteration;
+      }
+    }
+    return zs;
   }
-
-  zs
+  panic!("Failed to converge.");
 }
 
 // TODO
@@ -50,9 +45,6 @@ fn initial_guesses<const TERMS: usize>(
   for i in 1..coefficients.len() {
     guesses.push((i as f32).into())
   }
-  // for (i, _) in coefficients.iter().skip(1).enumerate() {
-  //   guesses.push(c.into());
-  // }
   guesses
 }
 
@@ -61,8 +53,6 @@ fn initial_guesses<const TERMS: usize>(
 /// Polynomial of the form f(x) = a + b*x + c*x^2 + d*x^3 + ...
 /// `coefficients` is a slice containing the coefficients [a, b, c, d, ...]
 fn sample_polynomial(coefficients: &[f32], x: Complex) -> Complex {
-  // can probably SIMD
-
   coefficients
     .iter()
     .enumerate()
@@ -77,12 +67,6 @@ fn sample_polynomial(coefficients: &[f32], x: Complex) -> Complex {
 /// Polynomial of the form f(x) = a + b*x + c*x^2 + d*x^3 + ...
 /// `coefficients` is a slice containing the coefficients [a, b, c, d, ...]
 /// starting from the coefficient of the x with degree 0.
-///
-// TODO: Generic could be simplified with const-generics
-// DEGREE = TERMS - 1
-// TERMS: NonZeroUsize
-// -> [f32; DEGREE]
-// The ArrayVec will have capacity 1 larger than required
 fn derivative<const TERMS: usize>(
   coefficients: &[f32; TERMS],
 ) -> ArrayVec<f32, TERMS> {
@@ -98,15 +82,12 @@ fn derivative<const TERMS: usize>(
 mod tests {
   use super::*;
   use float_cmp::assert_approx_eq;
-
-  fn approx_eq(z: Complex, w: Complex) -> bool {
-    // dbg!(z, w);
-    (z.real - w.real).abs() < 0.0001
-      && (z.imaginary - w.imaginary).abs() < 0.0001
-  }
+  const EPSILON: f32 = 0.00005;
 
   #[test]
-  fn polynomial_derivative() {
+  fn derivative() {
+    use super::derivative;
+
     {
       let y = [0.0, 1.0, 2.0, 3.0, 4.0];
       let dydx = derivative(&y);
@@ -125,29 +106,31 @@ mod tests {
   }
 
   #[test]
-  fn polynomial_sample() {
+  fn sample_polynomial() {
+    use super::sample_polynomial;
+
     {
       let y = [0.0, 1.0, 2.0, 3.0, 4.0];
 
       let x_0 = 0.0.into();
       let y_0 = sample_polynomial(&y, x_0);
       let expected_0 = 0.0.into();
-      assert!(approx_eq(y_0, expected_0));
+      assert!(y_0.approx_eq(expected_0, EPSILON));
 
       let x_1 = 1.0.into();
       let y_1 = sample_polynomial(&y, x_1);
       let expected_1 = 10.0.into();
-      assert!(approx_eq(y_1, expected_1));
+      assert!(y_1.approx_eq(expected_1, EPSILON));
 
       let x_2 = (-1.0).into();
       let y_2 = sample_polynomial(&y, x_2);
       let expected_2 = 2.0.into();
-      assert!(approx_eq(y_2, expected_2));
+      assert!(y_2.approx_eq(expected_2, EPSILON));
 
       let x_3 = 2.5.into();
       let y_3 = sample_polynomial(&y, x_3);
       let expected_3 = 218.125.into();
-      assert!(approx_eq(y_3, expected_3));
+      assert!(y_3.approx_eq(expected_3, EPSILON));
     }
 
     {
@@ -156,66 +139,89 @@ mod tests {
       let x_0 = 0.0.into();
       let y_0 = sample_polynomial(&y, x_0);
       let expected_0 = 19.0.into();
-      assert!(approx_eq(y_0, expected_0));
+      assert!(y_0.approx_eq(expected_0, EPSILON));
 
       let x_1 = 1.0.into();
       let y_1 = sample_polynomial(&y, x_1);
       let expected_1 = 99.02.into();
-      assert!(approx_eq(y_1, expected_1));
+      assert!(y_1.approx_eq(expected_1, EPSILON));
 
       let x_2 = (-1.0).into();
       let y_2 = sample_polynomial(&y, x_2);
       let expected_2 = 77.82.into();
-      assert!(approx_eq(y_2, expected_2));
+      assert!(y_2.approx_eq(expected_2, EPSILON));
     }
   }
 
   #[test]
-  fn aberth_test() {
+  fn aberth() {
+    use super::aberth;
+
+    fn unsorted_compare(zs: &[Complex], ws: &[Complex], epsilon: f32) -> bool {
+      zs.iter().fold(true, |acc, &z| {
+        let w = ws.iter().find(|&&w| z.approx_eq(w, epsilon));
+        acc && w.is_some()
+      })
+    }
+
     {
       let polynomial = [0.0, 1.0];
-
-      let roots = aberth(&polynomial);
-
-      // let expected = [0.0];
-      dbg!(roots);
+      let roots = aberth(&polynomial, EPSILON);
+      assert!(roots[0].approx_eq(Complex::ZERO, EPSILON));
     }
 
     {
       let polynomial = [1.0, 0.0, -1.0];
-
-      let roots = aberth(&polynomial);
-
-      // let expected = [1.0, -1.0];
-      dbg!(roots);
+      let roots = aberth(&polynomial, EPSILON);
+      let expected = [1.0.into(), (-1.0).into()];
+      assert!(unsorted_compare(&roots, &expected, EPSILON));
     }
 
     {
       // x^3 -12x^2 + 39x - 28 = 0
       let polynomial = [-28.0, 39.0, -12.0, 1.0];
 
-      let roots = aberth(&polynomial);
-      // let expected = [7.0, 4.0, 1.0];
-
-      dbg!(roots);
+      let roots = aberth(&polynomial, EPSILON);
+      let expected = [7.0.into(), 4.0.into(), 1.0.into()];
+      assert!(unsorted_compare(&roots, &expected, EPSILON));
     }
     {
       // 2x^3 - 38x^2 + 228x - 432 = 0
       let polynomial = [-432.0, 228.0, -38.0, 2.0];
 
-      let roots = aberth(&polynomial);
-      // let expected = [9.0, 6.0, 4.0];
-
-      dbg!(roots);
+      let roots = aberth(&polynomial, EPSILON);
+      let expected = [9.0.into(), 6.0.into(), 4.0.into()];
+      assert!(unsorted_compare(&roots, &expected, EPSILON));
     }
     {
       // x^3 + 8 = 0
       let polynomial = [8.0, 0.0, 0.0, 1.0];
 
-      let roots = aberth(&polynomial);
-      // let expected = [-2.0, 1 - j*3.sqrt(), 1 + j*3.sqrt()];
+      let roots = aberth(&polynomial, EPSILON);
+      let expected = [
+        (-2.0).into(),
+        Complex::new(1.0, -3f32.sqrt()),
+        Complex::new(1.0, 3f32.sqrt()),
+      ];
+      assert!(unsorted_compare(&roots, &expected, EPSILON));
+    }
+    {
+      // 11x^9 + 4x^4 + 2x - 1 = 0
+      let polynomial = [-1.0, 2.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 11.0];
 
-      dbg!(roots);
+      let roots = aberth(&polynomial, EPSILON);
+      let expected = [
+        (0.429326).into(),
+        Complex::new(-0.802811, -0.229634),
+        Complex::new(-0.802811, 0.229634),
+        Complex::new(-0.344895, -0.842594),
+        Complex::new(-0.344895, 0.842594),
+        Complex::new(0.206720, -0.675070),
+        Complex::new(0.206720, 0.675070),
+        Complex::new(0.726324, -0.455503),
+        Complex::new(0.726324, 0.455503),
+      ];
+      assert!(unsorted_compare(&roots, &expected, EPSILON));
     }
   }
 }

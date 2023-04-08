@@ -66,22 +66,34 @@ impl Segment {
           cubic::Roots::Two(t0, t1) => {
             // let (t0, t1) = (t0.clamp(0.0, 1.0), t1.clamp(0.0, 1.0));
             let d0 = if t0 < 0.0 {
-              let line = Line { start, end: control };
+              let line = Line {
+                start,
+                end: control,
+              };
               let t0 = line.closest_param_t(point);
               Self::distance_to_point_at_t(&line, point, t0)
             } else if t0 > 1.0 {
-              let line = Line { start: control, end };
+              let line = Line {
+                start: control,
+                end,
+              };
               let t0 = line.closest_param_t(point);
               Self::distance_to_point_at_t(&line, point, t0)
             } else {
               self.distance_to_point_at_t(point, t0)
             };
             let d1 = if t1 < 0.0 {
-              let line = Line { start, end: control };
+              let line = Line {
+                start,
+                end: control,
+              };
               let t1 = line.closest_param_t(point);
               Self::distance_to_point_at_t(&line, point, t1)
             } else if t1 > 1.0 {
-              let line = Line { start: control, end };
+              let line = Line {
+                start: control,
+                end,
+              };
               let t1 = line.closest_param_t(point);
               Self::distance_to_point_at_t(&line, point, t1)
             } else {
@@ -100,24 +112,42 @@ impl Segment {
             // let d1 = self.distance_to_point_at_t(point, t1);
             // let d2 = self.distance_to_point_at_t(point, t2);
             if t0 < 0.0 {
-              let line = Line { start, end: control };
+              let line = Line {
+                start,
+                end: control,
+              };
               t0 = line.closest_param_t(point);
             } else if t0 > 1.0 {
-              let line = Line { start: control, end };
+              let line = Line {
+                start: control,
+                end,
+              };
               t0 = line.closest_param_t(point);
             }
             if t1 < 0.0 {
-              let line = Line { start, end: control };
+              let line = Line {
+                start,
+                end: control,
+              };
               t1 = line.closest_param_t(point);
             } else if t1 > 1.0 {
-              let line = Line { start: control, end };
+              let line = Line {
+                start: control,
+                end,
+              };
               t1 = line.closest_param_t(point);
             }
             if t2 < 0.0 {
-              let line = Line { start, end: control };
+              let line = Line {
+                start,
+                end: control,
+              };
               t2 = line.closest_param_t(point);
             } else if t1 > 1.0 {
-              let line = Line { start: control, end };
+              let line = Line {
+                start: control,
+                end,
+              };
               t2 = line.closest_param_t(point);
             }
 

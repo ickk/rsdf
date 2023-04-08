@@ -124,6 +124,12 @@ impl Complex {
       imaginary: mod_pow_n * arg_mul_n.sin(),
     }
   }
+
+  #[inline]
+  pub fn approx_eq(self, w: Complex, epsilon: f32) -> bool {
+    (self.real - w.real).abs() < epsilon
+      && (self.imaginary - w.imaginary).abs() < epsilon
+  }
 }
 
 impl From<f32> for Complex {
@@ -302,19 +308,14 @@ mod tests {
   use super::super::*;
   use super::*;
   use float_cmp::assert_approx_eq;
-
-  fn approx_eq(z: Complex, w: Complex) -> bool {
-    // dbg!(z, w);
-    (z.real - w.real).abs() < 0.0001
-      && (z.imaginary - w.imaginary).abs() < 0.0001
-  }
+  const EPSILON: f32 = 0.0001;
 
   #[test]
   fn from_polar() {
     let z = Complex::from_polar(1., FRAC_PI_4);
     let expected = Complex::new(SQRT_2 / 2., SQRT_2 / 2.);
 
-    assert!(approx_eq(z, expected));
+    assert!(z.approx_eq(expected, EPSILON));
   }
 
   #[test]
@@ -322,7 +323,7 @@ mod tests {
     let z = Complex::j();
     let expected = Complex::new(0., 1.);
 
-    assert!(approx_eq(z, expected));
+    assert!(z.approx_eq(expected, EPSILON));
   }
 
   #[test]
@@ -331,7 +332,7 @@ mod tests {
     let w = z.conjugate();
     let expected = Complex::new(1.3, -3.4);
 
-    assert!(approx_eq(w, expected));
+    assert!(w.approx_eq(expected, EPSILON));
   }
 
   #[test]
@@ -340,16 +341,16 @@ mod tests {
     let z_squared = z.square();
     let expected = Complex::new(0., 9.);
 
-    assert!(approx_eq(z_squared, expected));
+    assert!(z_squared.approx_eq(expected, EPSILON));
   }
 
   #[test]
   fn cube() {
     let z = Complex::from_polar(3., FRAC_PI_2);
-    let z_squared = z.cube();
+    let z_cubed = z.cube();
     let expected = Complex::new(0., -27.);
 
-    assert!(approx_eq(z_squared, expected));
+    assert!(z_cubed.approx_eq(expected, EPSILON));
   }
 
   #[test]
@@ -358,7 +359,7 @@ mod tests {
     let z_reciprocal = z.reciprocal();
     let expected = Complex::from_polar(0.2, -3. * PI / 4.);
 
-    assert!(approx_eq(z_reciprocal, expected));
+    assert!(z_reciprocal.approx_eq(expected, EPSILON));
   }
 
   #[test]
@@ -403,7 +404,7 @@ mod tests {
     let sqrt = z.sqrt();
     let expected = Complex::new(SQRT_2 / 2., SQRT_2 / 2.);
 
-    assert!(approx_eq(sqrt, expected));
+    assert!(sqrt.approx_eq(expected, EPSILON));
   }
 
   #[test]
@@ -412,28 +413,36 @@ mod tests {
     let cbrt = z.cbrt();
     let expected = Complex::new(3f32.sqrt() / 2., 0.5);
 
-    assert!(approx_eq(cbrt, expected));
+    assert!(cbrt.approx_eq(expected, EPSILON));
   }
 
   #[test]
   fn powi() {
     let z = Complex::new(SQRT_2 / 2., SQRT_2 / 2.);
 
-    let pow2 = z.powi(2);
-    let expected = Complex::new(0., 1.);
-    assert!(approx_eq(pow2, expected));
+    {
+      let pow2 = z.powi(2);
+      let expected = Complex::new(0., 1.);
+      assert!(pow2.approx_eq(expected, EPSILON));
+    }
 
-    let pow3 = z.powi(3);
-    let expected = Complex::new(-SQRT_2 / 2., SQRT_2 / 2.);
-    assert!(approx_eq(pow3, expected));
+    {
+      let pow3 = z.powi(3);
+      let expected = Complex::new(-SQRT_2 / 2., SQRT_2 / 2.);
+      assert!(pow3.approx_eq(expected, EPSILON));
+    }
 
-    let pow5 = z.powi(5);
-    let expected = Complex::new(-SQRT_2 / 2., -SQRT_2 / 2.);
-    assert!(approx_eq(pow5, expected));
+    {
+      let pow5 = z.powi(5);
+      let expected = Complex::new(-SQRT_2 / 2., -SQRT_2 / 2.);
+      assert!(pow5.approx_eq(expected, EPSILON));
+    }
 
-    let pow8 = z.powi(8);
-    let expected = Complex::new(1., 0.);
-    assert!(approx_eq(pow8, expected));
+    {
+      let pow8 = z.powi(8);
+      let expected = Complex::new(1., 0.);
+      assert!(pow8.approx_eq(expected, EPSILON));
+    }
   }
 
   #[test]
@@ -441,7 +450,7 @@ mod tests {
     let z = Complex::from(13.);
     let expected = Complex::new(13., 0.);
 
-    assert!(approx_eq(z, expected));
+    assert!(z.approx_eq(expected, EPSILON));
   }
 
   #[test]
@@ -451,20 +460,23 @@ mod tests {
     let result = z + w;
     let expected = Complex::new(1.7, 4.3);
 
-    assert!(approx_eq(result, expected));
+    assert!(result.approx_eq(expected, EPSILON));
   }
 
   #[test]
   fn add_f32() {
-    let z = Complex::new(1.5, 4.0);
-    let result = z + 13.;
-    let expected = Complex::new(14.5, 4.);
-    assert!(approx_eq(result, expected));
-
-    let z = Complex::new(1.5, 4.0);
-    let result = 13. + z;
-    let expected = Complex::new(14.5, 4.);
-    assert!(approx_eq(result, expected));
+    {
+      let z = Complex::new(1.5, 4.0);
+      let result = z + 13.;
+      let expected = Complex::new(14.5, 4.);
+      assert!(result.approx_eq(expected, EPSILON));
+    }
+    {
+      let z = Complex::new(1.5, 4.0);
+      let result = 13. + z;
+      let expected = Complex::new(14.5, 4.);
+      assert!(result.approx_eq(expected, EPSILON));
+    }
   }
 
   #[test]
@@ -474,20 +486,24 @@ mod tests {
     let result = z - w;
     let expected = Complex::new(1.3, 3.7);
 
-    assert!(approx_eq(result, expected));
+    assert!(result.approx_eq(expected, EPSILON));
   }
 
   #[test]
   fn sub_f32() {
-    let z = Complex::new(1.5, 4.0);
-    let result = z - 13.;
-    let expected = Complex::new(-11.5, 4.0);
-    assert!(approx_eq(result, expected));
+    {
+      let z = Complex::new(1.5, 4.0);
+      let result = z - 13.;
+      let expected = Complex::new(-11.5, 4.0);
+      assert!(result.approx_eq(expected, EPSILON));
+    }
 
-    let z = Complex::new(1.5, 4.0);
-    let result = 13. - z;
-    let expected = Complex::new(11.5, -4.0);
-    assert!(approx_eq(result, expected));
+    {
+      let z = Complex::new(1.5, 4.0);
+      let result = 13. - z;
+      let expected = Complex::new(11.5, -4.0);
+      assert!(result.approx_eq(expected, EPSILON));
+    }
   }
 
   #[test]
@@ -497,20 +513,24 @@ mod tests {
     let result = z * w;
     let expected = Complex::new(0., 3. * SQRT_2);
 
-    assert!(approx_eq(result, expected));
+    assert!(result.approx_eq(expected, EPSILON));
   }
 
   #[test]
   fn mul_f32() {
-    let z = Complex::new(3., 1.);
-    let result = z * 1.5;
-    let expected = Complex::new(4.5, 1.5);
-    assert!(approx_eq(result, expected));
+    {
+      let z = Complex::new(3., 1.);
+      let result = z * 1.5;
+      let expected = Complex::new(4.5, 1.5);
+      assert!(result.approx_eq(expected, EPSILON));
+    }
 
-    let z = Complex::new(3., 1.);
-    let result = 1.5 * z;
-    let expected = Complex::new(4.5, 1.5);
-    assert!(approx_eq(result, expected));
+    {
+      let z = Complex::new(3., 1.);
+      let result = 1.5 * z;
+      let expected = Complex::new(4.5, 1.5);
+      assert!(result.approx_eq(expected, EPSILON));
+    }
   }
 
   #[test]
@@ -520,19 +540,23 @@ mod tests {
     let result = z / w;
     let expected = Complex::new(0., 1.);
 
-    assert!(approx_eq(result, expected));
+    assert!(result.approx_eq(expected, EPSILON));
   }
 
   #[test]
   fn div_f32() {
-    let z = Complex::new(3., 1.);
-    let result = z / 1.5;
-    let expected = Complex::new(2., 2. / 3.);
-    assert!(approx_eq(result, expected));
+    {
+      let z = Complex::new(3., 1.);
+      let result = z / 1.5;
+      let expected = Complex::new(2., 2. / 3.);
+      assert!(result.approx_eq(expected, EPSILON));
+    }
 
-    let z = Complex::from_polar(1., FRAC_PI_4);
-    let result = 2. / z;
-    let expected = Complex::new(SQRT_2, -SQRT_2);
-    assert!(approx_eq(result, expected));
+    {
+      let z = Complex::from_polar(1., FRAC_PI_4);
+      let result = 2. / z;
+      let expected = Complex::new(SQRT_2, -SQRT_2);
+      assert!(result.approx_eq(expected, EPSILON));
+    }
   }
 }
