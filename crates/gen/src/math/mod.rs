@@ -2,6 +2,7 @@ pub mod complex;
 pub mod point;
 pub mod roots;
 pub mod vector;
+pub mod aberth;
 
 pub use complex::*;
 pub use point::*;

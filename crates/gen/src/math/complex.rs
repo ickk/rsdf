@@ -1,10 +1,15 @@
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Complex {
-  real: f32,
-  imaginary: f32,
+  pub real: f32,
+  pub imaginary: f32,
 }
 
 impl Complex {
+  pub const ZERO: Self = Complex {
+    real: 0.,
+    imaginary: 0.,
+  };
+
   pub const J: Self = Complex {
     real: 0.,
     imaginary: 1.,
@@ -227,6 +232,15 @@ impl std::ops::Mul<f32> for Complex {
   }
 }
 
+impl std::ops::Mul<&f32> for Complex {
+  type Output = Self;
+
+  #[inline]
+  fn mul(self, rhs: &f32) -> Complex {
+    self * *rhs
+  }
+}
+
 impl std::ops::Mul<Complex> for f32 {
   type Output = Complex;
 
@@ -236,6 +250,15 @@ impl std::ops::Mul<Complex> for f32 {
       real: self * rhs.real,
       imaginary: self * rhs.imaginary,
     }
+  }
+}
+
+impl std::ops::Mul<Complex> for &f32 {
+  type Output = Complex;
+
+  #[inline]
+  fn mul(self, rhs: Complex) -> Complex {
+    (*self).mul(rhs)
   }
 }
 
@@ -281,7 +304,7 @@ mod tests {
   use float_cmp::assert_approx_eq;
 
   fn approx_eq(z: Complex, w: Complex) -> bool {
-    dbg!(z, w);
+    // dbg!(z, w);
     (z.real - w.real).abs() < 0.0001
       && (z.imaginary - w.imaginary).abs() < 0.0001
   }

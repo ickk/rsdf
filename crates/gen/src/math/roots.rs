@@ -74,7 +74,7 @@ pub mod cubic {
         // x^3 = 0
         let (a, b, c, d) = (1., 0., 0., 0.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::One(x) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x, 0.));
       }
@@ -83,7 +83,7 @@ pub mod cubic {
         // x^3 - 1 = 0
         let (a, b, c, d) = (1., 0., 0., -1.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::One(x) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x, 1.));
       }
@@ -92,7 +92,7 @@ pub mod cubic {
         // x^3 - 27 = 0
         let (a, b, c, d) = (1., 0., 0., -27.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::One(x) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x, 3.));
       }
@@ -101,7 +101,7 @@ pub mod cubic {
         // x^3 + 8 = 0
         let (a, b, c, d) = (1., 0., 0., 8.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::One(x) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x, -2.));
       }
@@ -113,7 +113,7 @@ pub mod cubic {
         // x^3 + 3x^2 - 4 = 0
         let (a, b, c, d) = (1., 3., 0., -4.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::Two(x0, x1) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x0, 1.));
         assert!(approx_eq!(f32, x1, -2.));
@@ -123,7 +123,7 @@ pub mod cubic {
         // 2x^3 - 3x^2 + 1 = 0
         let (a, b, c, d) = (2., -3., 0., 1.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::Two(x0, x1) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x0, -0.5));
         assert!(approx_eq!(f32, x1, 1.));
@@ -136,7 +136,7 @@ pub mod cubic {
         // x^3 - 6x^2 + 11x -6 = 0
         let (a, b, c, d) = (1., -6., 11., -6.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::Three(x0, x1, x2) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x0, 3.));
         assert!(approx_eq!(f32, x1, 2.));
@@ -147,7 +147,7 @@ pub mod cubic {
         // x^3 -23x^2 + 142x - 120 = 0
         let (a, b, c, d) = (1., -23., 142., -120.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::Three(x0, x1, x2) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x0, 12.));
         assert!(approx_eq!(f32, x1, 10.));
@@ -158,7 +158,7 @@ pub mod cubic {
         // x^3 -12x^2 + 39x - 28 = 0
         let (a, b, c, d) = (1., -12., 39., -28.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::Three(x0, x1, x2) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x0, 7.));
         assert!(approx_eq!(f32, x1, 4.));
@@ -169,7 +169,7 @@ pub mod cubic {
         // 2x^3 - 38x^2 + 228x - 432 = 0
         let (a, b, c, d) = (2., -38., 228., -432.);
         let roots = roots(a, b, c, d);
-        dbg!(roots);
+        // dbg!(roots);
         let Roots::Three(x0, x1, x2) = roots else { panic!("Incorrect number of roots found") };
         assert!(approx_eq!(f32, x0, 9.));
         assert!(approx_eq!(f32, x1, 6.));

@@ -31,11 +31,10 @@ impl Segment {
       Line { start, end } => {
         // We can find the closest point on the line by projecting the point onto the line.
         let s_p = Vector::from_points(start, point);
-        let s_e_norm = Vector::from_points(start, end).norm();
-        let p_onto_line = s_p.dot(s_e_norm);
+        let s_e = Vector::from_points(start, end);
+        let p_onto_line = s_p.dot(s_e.norm());
         // Then we normalise it with respect to the length of the line.
-        let line_length = Vector::from_points(start, end).abs();
-        p_onto_line / line_length
+        p_onto_line / s_e.abs()
       },
       QuadBezier {
         start,
@@ -48,9 +47,10 @@ impl Segment {
         let p1 = Vector::from_points(start, control);
         let p2 =
           end.as_vector() - 2. * control.as_vector() + start.as_vector();
-        // The roots of the cubic equation yield `t` when the vector from `t` to `point` is
-        // perpendicular to the quadratic bezier.
-        assert!(p2.abs() > 0.0001, "quadratic bezier is degenerate"); // the control falls directly between start & end. i.e. a line.
+        // The roots of the cubic equation yield `t` when the vector from `t`
+        // to `point` is perpendicular to the quadratic bezier.
+        assert!(p2.abs() > 0.0001, "quadratic bezier is degenerate");
+        // the control falls directly between start & end. i.e. a line.
 
         // a*t^3 + b*t^2 + c*t + d = 0
         let a = p2.dot(p2);
@@ -62,9 +62,31 @@ impl Segment {
         let roots = cubic::roots(a, b, c, d);
         match roots {
           cubic::Roots::One(t0) => t0,
+          // t0.clamp(0.0, 1.0),
           cubic::Roots::Two(t0, t1) => {
-            let d0 = self.distance_to_point_at_t(point, t0);
-            let d1 = self.distance_to_point_at_t(point, t1);
+            // let (t0, t1) = (t0.clamp(0.0, 1.0), t1.clamp(0.0, 1.0));
+            let d0 = if t0 < 0.0 {
+              let line = Line { start, end: control };
+              let t0 = line.closest_param_t(point);
+              Self::distance_to_point_at_t(&line, point, t0)
+            } else if t0 > 1.0 {
+              let line = Line { start: control, end };
+              let t0 = line.closest_param_t(point);
+              Self::distance_to_point_at_t(&line, point, t0)
+            } else {
+              self.distance_to_point_at_t(point, t0)
+            };
+            let d1 = if t1 < 0.0 {
+              let line = Line { start, end: control };
+              let t1 = line.closest_param_t(point);
+              Self::distance_to_point_at_t(&line, point, t1)
+            } else if t1 > 1.0 {
+              let line = Line { start: control, end };
+              let t1 = line.closest_param_t(point);
+              Self::distance_to_point_at_t(&line, point, t1)
+            } else {
+              self.distance_to_point_at_t(point, t1)
+            };
             if d0 <= d1 {
               t0
             } else {
@@ -72,9 +94,37 @@ impl Segment {
             }
           },
           cubic::Roots::Three(t0, t1, t2) => {
+            let (mut t0, mut t1, mut t2) = (t0, t1, t2);
+            // let (t0, t1, t2) = (t0.clamp(0.0, 1.0), t1.clamp(0.0, 1.0), t2.clamp(0.0, 1.0));
+            // let d0 = self.distance_to_point_at_t(point, t0);
+            // let d1 = self.distance_to_point_at_t(point, t1);
+            // let d2 = self.distance_to_point_at_t(point, t2);
+            if t0 < 0.0 {
+              let line = Line { start, end: control };
+              t0 = line.closest_param_t(point);
+            } else if t0 > 1.0 {
+              let line = Line { start: control, end };
+              t0 = line.closest_param_t(point);
+            }
+            if t1 < 0.0 {
+              let line = Line { start, end: control };
+              t1 = line.closest_param_t(point);
+            } else if t1 > 1.0 {
+              let line = Line { start: control, end };
+              t1 = line.closest_param_t(point);
+            }
+            if t2 < 0.0 {
+              let line = Line { start, end: control };
+              t2 = line.closest_param_t(point);
+            } else if t1 > 1.0 {
+              let line = Line { start: control, end };
+              t2 = line.closest_param_t(point);
+            }
+
             let d0 = self.distance_to_point_at_t(point, t0);
             let d1 = self.distance_to_point_at_t(point, t1);
             let d2 = self.distance_to_point_at_t(point, t2);
+
             if d0 <= d1 && d0 <= d2 {
               t0
             } else if d1 <= d0 && d1 <= d2 {
