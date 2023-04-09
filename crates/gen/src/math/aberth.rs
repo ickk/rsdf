@@ -53,42 +53,32 @@ fn initial_guesses<const TERMS: usize>(
   let n = polynomial.len() - 1; // the degree of the polynomial
 
   // convert polynomial to monic form
-  let monic = {
-    let mut p = polynomial.clone();
-    for c in p.iter_mut() {
-      *c = *c / polynomial[n]
-    }
-    p
-  };
+  let mut monic: ArrayVec<f32, TERMS> = ArrayVec::new();
+  for c in polynomial {
+    monic.push(c / polynomial[n]);
+  }
 
   // let z = w + a, a = - c_1 / n
   let a = -monic[n - 1] / n as f32;
 
   let p_of_w = {
-    let mut p_of_w: ArrayVec<f32, TERMS> = {
-      // initialise with 0
-      let mut v = ArrayVec::new();
-      for _ in 0..=n {
-        // SAFETY: we push one less value than there are terms.
-        unsafe { v.push_unchecked(0.0) };
-      }
-      v
-    };
+    // we can recycle monic on the fly.
     for coefficient_index in 0..=n {
+      let c = monic[coefficient_index];
+      monic[coefficient_index] = 0.0;
       for (index, power, pascal) in itertools::izip!(
         0..=coefficient_index,
         (0..=coefficient_index).rev(),
         PascalRowIter::new(coefficient_index),
       ) {
-        let val =
-          monic[coefficient_index] * (pascal as f32) * a.powi(power as i32);
-        p_of_w[index] += val;
+        let val = c * (pascal as f32) * a.powi(power as i32);
+        monic[index] += val;
       }
     }
-    p_of_w
+    monic
   };
 
-  // find S(w)
+  // convert P(w) into S(w)
   let s_of_w = {
     let mut p = p_of_w;
     // skip the last coefficient
