@@ -55,7 +55,8 @@ fn initial_guesses<const TERMS: usize>(
   // convert polynomial to monic form
   let mut monic: ArrayVec<f32, TERMS> = ArrayVec::new();
   for c in polynomial {
-    monic.push(c / polynomial[n]);
+    // SAFETY: we push only as many values as there are terms.
+    unsafe { monic.push_unchecked(c / polynomial[n]) };
   }
 
   // let z = w + a, a = - c_1 / n
