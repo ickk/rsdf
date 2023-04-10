@@ -55,19 +55,18 @@ pub fn aberth<const TERMS: usize, F: Float + FloatConst>(
 fn initial_guesses<const TERMS: usize, F: Float + FloatConst>(
   polynomial: &[F; TERMS],
 ) -> ArrayVec<Complex<F>, TERMS> {
-  // naive transformation of the polynomial to find S(w)
-  let n = polynomial.len() - 1; // the degree of the polynomial
-
+  // the degree of the polynomial
+  let n = polynomial.len() - 1;
+  let n_f = unsafe { cast(n).unwrap_unchecked() };
   // convert polynomial to monic form
   let mut monic: ArrayVec<F, TERMS> = ArrayVec::new();
   for c in polynomial {
     // SAFETY: we push only as many values as there are terms.
     unsafe { monic.push_unchecked(*c / polynomial[n]) };
   }
-
-  // let z = w + a, a = - c_1 / n
-  let a = -monic[n - 1] / cast(n).unwrap();
-
+  // let a = - c_1 / n
+  let a = -monic[n - 1] / n_f;
+  // let z = w + a,
   let p_of_w = {
     // we can recycle monic on the fly.
     for coefficient_index in 0..=n {
@@ -78,13 +77,13 @@ fn initial_guesses<const TERMS: usize, F: Float + FloatConst>(
         (0..=coefficient_index).rev(),
         PascalRowIter::new(coefficient_index as u32),
       ) {
-        let val = c * (cast(pascal).unwrap()) * a.powi(power as i32);
+        let pascal = unsafe { cast(pascal).unwrap_unchecked() };
+        let val = c * pascal * a.powi(power as i32);
         monic[index] = monic[index] + val;
       }
     }
     monic
   };
-
   // convert P(w) into S(w)
   let s_of_w = {
     let mut p = p_of_w;
@@ -94,7 +93,6 @@ fn initial_guesses<const TERMS: usize, F: Float + FloatConst>(
     }
     p
   };
-
   // find r_0
   let mut int = F::one();
   let r_0 = loop {
@@ -109,11 +107,12 @@ fn initial_guesses<const TERMS: usize, F: Float + FloatConst>(
   {
     let mut guesses: ArrayVec<Complex<F>, TERMS> = ArrayVec::new();
 
-    let frac_2pi_n = F::TAU() / cast(n).unwrap();
-    let frac_pi_2n = F::FRAC_PI_2() / cast(n).unwrap();
+    let frac_2pi_n = F::TAU() / n_f;
+    let frac_pi_2n = F::FRAC_PI_2() / n_f;
 
     for k in 0..n {
-      let theta = frac_2pi_n * cast(k).unwrap() + frac_pi_2n;
+      let k_f = unsafe { cast(k).unwrap_unchecked() };
+      let theta = frac_2pi_n * k_f + frac_pi_2n;
 
       let real = a + r_0 * theta.cos();
       let imaginary = r_0 * theta.sin();
@@ -196,7 +195,10 @@ pub fn derivative<const TERMS: usize, F: Float>(
     .iter()
     .enumerate()
     .skip(1)
-    .map(|(power, &coefficient)| F::from(power).unwrap() * coefficient)
+    .map(|(power, &coefficient)| {
+      let p = unsafe { F::from(power).unwrap_unchecked() };
+      p * coefficient
+    })
     .collect()
 }
 
