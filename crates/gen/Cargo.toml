@@ -6,7 +6,8 @@ edition = "2021"
 [dependencies]
 png = "0.17"
 itertools = "0.10"
-arrayvec = "0.7.2"
+arrayvec = "0.7"
+num-traits = "0.2"
 
 [dev-dependencies]
-float-cmp = "0.9.0"
+float-cmp = "0.9"

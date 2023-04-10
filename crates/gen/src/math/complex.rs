@@ -1,36 +1,50 @@
+use num_traits::{cast, float::Float};
+
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Complex {
-  pub real: f32,
-  pub imaginary: f32,
+pub struct Complex<F: Float> {
+  pub real: F,
+  pub imaginary: F,
 }
 
-impl Complex {
-  pub const ZERO: Self = Complex {
-    real: 0.,
-    imaginary: 0.,
-  };
-
-  pub const J: Self = Complex {
-    real: 0.,
-    imaginary: 1.,
-  };
-
+impl<F: Float> Complex<F> {
   #[inline]
-  pub const fn new(real: f32, imaginary: f32) -> Self {
-    Complex { real, imaginary }
-  }
-
-  #[inline]
-  pub fn from_polar(modulus: f32, argument: f32) -> Self {
+  #[allow(non_snake_case)]
+  pub fn ZERO() -> Self {
     Complex {
-      real: modulus * argument.cos(),
-      imaginary: modulus * argument.sin(),
+      real: F::zero(),
+      imaginary: F::zero(),
     }
   }
 
   #[inline]
-  pub const fn j() -> Self {
-    Self::J
+  #[allow(non_snake_case)]
+  pub fn ONE() -> Self {
+    Complex {
+      real: F::one(),
+      imaginary: F::zero(),
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn J() -> Self {
+    Complex {
+      real: F::zero(),
+      imaginary: F::one(),
+    }
+  }
+
+  #[inline]
+  pub const fn new(real: F, imaginary: F) -> Self {
+    Complex { real, imaginary }
+  }
+
+  #[inline]
+  pub fn from_polar(modulus: F, argument: F) -> Self {
+    Complex {
+      real: modulus * argument.cos(),
+      imaginary: modulus * argument.sin(),
+    }
   }
 
   #[inline]
@@ -45,7 +59,7 @@ impl Complex {
   pub fn square(self) -> Self {
     Complex {
       real: self.real * self.real - self.imaginary * self.imaginary,
-      imaginary: 2. * self.real * self.imaginary,
+      imaginary: F::from(2.).unwrap() * self.real * self.imaginary,
     }
   }
 
@@ -54,8 +68,9 @@ impl Complex {
     let re_2 = self.real * self.real;
     let im_2 = self.imaginary * self.imaginary;
     Complex {
-      real: self.real * re_2 - 3. * self.real * im_2,
-      imaginary: 3. * re_2 * self.imaginary - im_2 * self.imaginary,
+      real: self.real * re_2 - F::from(3.).unwrap() * self.real * im_2,
+      imaginary: F::from(3.).unwrap() * re_2 * self.imaginary
+        - im_2 * self.imaginary,
     }
   }
 
@@ -69,34 +84,34 @@ impl Complex {
   }
 
   #[inline]
-  pub const fn real(self) -> f32 {
+  pub const fn real(self) -> F {
     self.real
   }
 
   #[inline]
-  pub const fn imaginary(self) -> f32 {
+  pub const fn imaginary(self) -> F {
     self.imaginary
   }
 
   #[inline]
-  pub fn abs(self) -> f32 {
+  pub fn abs(self) -> F {
     self.modulus()
   }
 
   #[inline]
-  pub fn modulus(self) -> f32 {
+  pub fn modulus(self) -> F {
     (self.real * self.real + self.imaginary * self.imaginary).sqrt()
   }
 
   #[inline]
-  pub fn arg(self) -> f32 {
-    f32::atan2(self.imaginary, self.real)
+  pub fn arg(self) -> F {
+    F::atan2(self.imaginary, self.real)
   }
 
   #[inline]
   pub fn sqrt(self) -> Self {
-    let half_modulus = 0.5 * self.modulus();
-    let half_real = 0.5 * self.real;
+    let half_modulus = F::from(0.5).unwrap() * self.modulus();
+    let half_real = F::from(0.5).unwrap() * self.real;
 
     Complex {
       real: (half_real + half_modulus).sqrt(),
@@ -107,7 +122,7 @@ impl Complex {
   #[inline]
   pub fn cbrt(self) -> Self {
     let mod_cbrt = self.modulus().cbrt();
-    let arg_div_n = self.arg() / 3.;
+    let arg_div_n = self.arg() / F::from(3.).unwrap();
 
     Complex {
       real: mod_cbrt * arg_div_n.cos(),
@@ -118,7 +133,7 @@ impl Complex {
   #[inline]
   pub fn powi(self, power: i32) -> Self {
     let mod_pow_n = self.modulus().powi(power);
-    let arg_mul_n = self.arg() * power as f32;
+    let arg_mul_n = self.arg() * cast(power).unwrap();
     Complex {
       real: mod_pow_n * arg_mul_n.cos(),
       imaginary: mod_pow_n * arg_mul_n.sin(),
@@ -126,27 +141,27 @@ impl Complex {
   }
 
   #[inline]
-  pub fn approx_eq(self, w: Complex, epsilon: f32) -> bool {
+  pub fn approx_eq(self, w: Complex<F>, epsilon: F) -> bool {
     (self.real - w.real).abs() < epsilon
       && (self.imaginary - w.imaginary).abs() < epsilon
   }
 }
 
-impl From<f32> for Complex {
+impl<F: Float> From<F> for Complex<F> {
   #[inline]
-  fn from(real: f32) -> Self {
+  fn from(real: F) -> Self {
     Complex {
       real,
-      imaginary: 0.,
+      imaginary: F::zero(),
     }
   }
 }
 
-impl std::ops::Add<Complex> for Complex {
+impl<F: Float> std::ops::Add<Complex<F>> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn add(self, rhs: Self) -> Complex {
+  fn add(self, rhs: Self) -> Complex<F> {
     Complex {
       real: self.real + rhs.real,
       imaginary: self.imaginary + rhs.imaginary,
@@ -154,11 +169,11 @@ impl std::ops::Add<Complex> for Complex {
   }
 }
 
-impl std::ops::Add<f32> for Complex {
+impl<F: Float> std::ops::Add<F> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn add(self, rhs: f32) -> Complex {
+  fn add(self, rhs: F) -> Complex<F> {
     Complex {
       real: self.real + rhs,
       imaginary: self.imaginary,
@@ -166,23 +181,11 @@ impl std::ops::Add<f32> for Complex {
   }
 }
 
-impl std::ops::Add<Complex> for f32 {
-  type Output = Complex;
-
-  #[inline]
-  fn add(self, rhs: Complex) -> Complex {
-    Complex {
-      real: self + rhs.real,
-      imaginary: rhs.imaginary,
-    }
-  }
-}
-
-impl std::ops::Sub<Complex> for Complex {
+impl<F: Float> std::ops::Sub<Complex<F>> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn sub(self, rhs: Self) -> Complex {
+  fn sub(self, rhs: Self) -> Complex<F> {
     Complex {
       real: self.real - rhs.real,
       imaginary: self.imaginary - rhs.imaginary,
@@ -190,11 +193,11 @@ impl std::ops::Sub<Complex> for Complex {
   }
 }
 
-impl std::ops::Sub<f32> for Complex {
+impl<F: Float> std::ops::Sub<F> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn sub(self, rhs: f32) -> Complex {
+  fn sub(self, rhs: F) -> Complex<F> {
     Complex {
       real: self.real - rhs,
       imaginary: self.imaginary,
@@ -202,23 +205,11 @@ impl std::ops::Sub<f32> for Complex {
   }
 }
 
-impl std::ops::Sub<Complex> for f32 {
-  type Output = Complex;
-
-  #[inline]
-  fn sub(self, rhs: Complex) -> Complex {
-    Complex {
-      real: self - rhs.real,
-      imaginary: -rhs.imaginary,
-    }
-  }
-}
-
-impl std::ops::Mul<Complex> for Complex {
+impl<F: Float> std::ops::Mul<Complex<F>> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn mul(self, rhs: Self) -> Complex {
+  fn mul(self, rhs: Self) -> Complex<F> {
     Complex {
       real: self.real * rhs.real - self.imaginary * rhs.imaginary,
       imaginary: self.real * rhs.imaginary + self.imaginary * rhs.real,
@@ -226,11 +217,11 @@ impl std::ops::Mul<Complex> for Complex {
   }
 }
 
-impl std::ops::Mul<f32> for Complex {
+impl<F: Float> std::ops::Mul<F> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn mul(self, rhs: f32) -> Complex {
+  fn mul(self, rhs: F) -> Complex<F> {
     Complex {
       real: self.real * rhs,
       imaginary: self.imaginary * rhs,
@@ -238,41 +229,20 @@ impl std::ops::Mul<f32> for Complex {
   }
 }
 
-impl std::ops::Mul<&f32> for Complex {
+impl<F: Float> std::ops::Mul<&F> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn mul(self, rhs: &f32) -> Complex {
+  fn mul(self, rhs: &F) -> Complex<F> {
     self * *rhs
   }
 }
 
-impl std::ops::Mul<Complex> for f32 {
-  type Output = Complex;
-
-  #[inline]
-  fn mul(self, rhs: Complex) -> Complex {
-    Complex {
-      real: self * rhs.real,
-      imaginary: self * rhs.imaginary,
-    }
-  }
-}
-
-impl std::ops::Mul<Complex> for &f32 {
-  type Output = Complex;
-
-  #[inline]
-  fn mul(self, rhs: Complex) -> Complex {
-    (*self).mul(rhs)
-  }
-}
-
-impl std::ops::Div<Complex> for Complex {
+impl<F: Float> std::ops::Div<Complex<F>> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn div(self, rhs: Self) -> Complex {
+  fn div(self, rhs: Self) -> Complex<F> {
     let denominator = rhs.real * rhs.real + rhs.imaginary * rhs.imaginary;
     let real =
       (self.real * rhs.real + self.imaginary * rhs.imaginary) / denominator;
@@ -282,11 +252,11 @@ impl std::ops::Div<Complex> for Complex {
   }
 }
 
-impl std::ops::Div<f32> for Complex {
+impl<F: Float> std::ops::Div<F> for Complex<F> {
   type Output = Self;
 
   #[inline]
-  fn div(self, rhs: f32) -> Complex {
+  fn div(self, rhs: F) -> Complex<F> {
     Complex {
       real: self.real / rhs,
       imaginary: self.imaginary / rhs,
@@ -294,11 +264,106 @@ impl std::ops::Div<f32> for Complex {
   }
 }
 
-impl std::ops::Div<Complex> for f32 {
-  type Output = Complex;
+// E0210 means we have to implement these for each float type
+impl std::ops::Add<Complex<f32>> for f32 {
+  type Output = Complex<f32>;
 
   #[inline]
-  fn div(self, rhs: Complex) -> Complex {
+  fn add(self, rhs: Complex<f32>) -> Complex<f32> {
+    Complex {
+      real: self + rhs.real,
+      imaginary: rhs.imaginary,
+    }
+  }
+}
+impl std::ops::Add<Complex<f64>> for f64 {
+  type Output = Complex<f64>;
+
+  #[inline]
+  fn add(self, rhs: Complex<f64>) -> Complex<f64> {
+    Complex {
+      real: self + rhs.real,
+      imaginary: rhs.imaginary,
+    }
+  }
+}
+
+impl std::ops::Sub<Complex<f32>> for f32 {
+  type Output = Complex<f32>;
+
+  #[inline]
+  fn sub(self, rhs: Complex<f32>) -> Complex<f32> {
+    Complex {
+      real: self - rhs.real,
+      imaginary: -rhs.imaginary,
+    }
+  }
+}
+impl std::ops::Sub<Complex<f64>> for f64 {
+  type Output = Complex<f64>;
+
+  #[inline]
+  fn sub(self, rhs: Complex<f64>) -> Complex<f64> {
+    Complex {
+      real: self - rhs.real,
+      imaginary: -rhs.imaginary,
+    }
+  }
+}
+
+impl std::ops::Mul<Complex<f32>> for f32 {
+  type Output = Complex<f32>;
+
+  #[inline]
+  fn mul(self, rhs: Complex<f32>) -> Complex<f32> {
+    Complex {
+      real: self * rhs.real,
+      imaginary: self * rhs.imaginary,
+    }
+  }
+}
+impl std::ops::Mul<Complex<f64>> for f64 {
+  type Output = Complex<f64>;
+
+  #[inline]
+  fn mul(self, rhs: Complex<f64>) -> Complex<f64> {
+    Complex {
+      real: self * rhs.real,
+      imaginary: self * rhs.imaginary,
+    }
+  }
+}
+
+impl std::ops::Mul<Complex<f32>> for &f32 {
+  type Output = Complex<f32>;
+
+  #[inline]
+  fn mul(self, rhs: Complex<f32>) -> Complex<f32> {
+    (*self).mul(rhs)
+  }
+}
+impl std::ops::Mul<Complex<f64>> for &f64 {
+  type Output = Complex<f64>;
+
+  #[inline]
+  fn mul(self, rhs: Complex<f64>) -> Complex<f64> {
+    (*self).mul(rhs)
+  }
+}
+
+impl std::ops::Div<Complex<f32>> for f32 {
+  type Output = Complex<f32>;
+
+  #[inline]
+  fn div(self, rhs: Complex<f32>) -> Complex<f32> {
+    Complex::from(self).div(rhs)
+  }
+}
+impl std::ops::Div<Complex<f64>> for f64 {
+  type Output = Complex<f64>;
+
+  #[inline]
+  fn div(self, rhs: Complex<f64>) -> Complex<f64> {
     Complex::from(self).div(rhs)
   }
 }
@@ -320,7 +385,7 @@ mod tests {
 
   #[test]
   fn j() {
-    let z = Complex::j();
+    let z = Complex::J();
     let expected = Complex::new(0., 1.);
 
     assert!(z.approx_eq(expected, EPSILON));
@@ -473,7 +538,7 @@ mod tests {
     }
     {
       let z = Complex::new(1.5, 4.0);
-      let result = 13. + z;
+      let result = 13_f32 + z;
       let expected = Complex::new(14.5, 4.);
       assert!(result.approx_eq(expected, EPSILON));
     }
@@ -500,7 +565,7 @@ mod tests {
 
     {
       let z = Complex::new(1.5, 4.0);
-      let result = 13. - z;
+      let result = 13_f32 - z;
       let expected = Complex::new(11.5, -4.0);
       assert!(result.approx_eq(expected, EPSILON));
     }
@@ -527,7 +592,7 @@ mod tests {
 
     {
       let z = Complex::new(3., 1.);
-      let result = 1.5 * z;
+      let result = 1.5_f32 * z;
       let expected = Complex::new(4.5, 1.5);
       assert!(result.approx_eq(expected, EPSILON));
     }
