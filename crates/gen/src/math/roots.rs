@@ -1,4 +1,18 @@
 use super::*;
+use arrayvec::ArrayVec;
+
+const EPSILON: f32 = 0.0001;
+
+pub fn real_roots<const TERMS: usize>(
+  polynomial: &[f32; TERMS],
+) -> ArrayVec<f32, TERMS> {
+  aberth::aberth(polynomial, EPSILON)
+    .unwrap()
+    .iter()
+    .filter(|root| root.im.abs() <= EPSILON)
+    .map(|root| root.re)
+    .collect()
+}
 
 pub mod cubic {
   use super::*;
@@ -46,8 +60,8 @@ pub mod cubic {
 
       return Roots::Three(x_from_t(t0), x_from_t(t1), x_from_t(t2));
     } else if discriminant == 0. {
-      // these equalities should probably be slightly more forgiving
-      // multiple root
+      // these equalities should probably be slightly more forgiving multiple
+      // root
       if p == 0. {
         // triple root at 0
         let t = 0.;

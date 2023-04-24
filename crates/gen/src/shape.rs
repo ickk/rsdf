@@ -20,37 +20,37 @@ impl Shape {
 
     for contour in self.contours.iter() {
       for spline in contour.splines() {
-        let spline_distance = spline.distance_to(point);
+        let Distance { distance, orthogonality, signed_pseudo_distance } = spline.distance_to(point);
 
         if (spline.channels & Channels::new(0b100)).as_bool()
-          && (spline_distance.distance.abs() < red_distance
-            || spline_distance.distance == red_distance
-              && (spline_distance.orthogonality > red_orthogonality))
+          && (distance.abs() < red_distance
+            || distance == red_distance
+              && (orthogonality > red_orthogonality))
         {
-          red_distance = spline_distance.distance;
-          red_orthogonality = spline_distance.orthogonality;
-          red_signed_pseudo_distance = spline_distance.signed_pseudo_distance;
+          red_distance = distance;
+          red_orthogonality = orthogonality;
+          red_signed_pseudo_distance = signed_pseudo_distance;
         }
 
         if (spline.channels & Channels::new(0b010)).as_bool()
-          && (spline_distance.distance < green_distance
-            || spline_distance.distance == green_distance
-              && (spline_distance.orthogonality > green_orthogonality))
+          && (distance < green_distance
+            || distance == green_distance
+              && (orthogonality > green_orthogonality))
         {
-          green_distance = spline_distance.distance;
-          green_orthogonality = spline_distance.orthogonality;
+          green_distance = distance;
+          green_orthogonality = orthogonality;
           green_signed_pseudo_distance =
-            spline_distance.signed_pseudo_distance;
+            signed_pseudo_distance;
         }
 
         if (spline.channels & Channels::new(0b001)).as_bool()
-          && (spline_distance.distance < blue_distance
-            || spline_distance.distance == blue_distance
-              && (spline_distance.orthogonality > blue_orthogonality))
+          && (distance < blue_distance
+            || distance == blue_distance
+              && (orthogonality > blue_orthogonality))
         {
-          blue_distance = spline_distance.distance;
-          blue_orthogonality = spline_distance.orthogonality;
-          blue_signed_pseudo_distance = spline_distance.signed_pseudo_distance;
+          blue_distance = distance;
+          blue_orthogonality = orthogonality;
+          blue_signed_pseudo_distance = signed_pseudo_distance;
         }
       }
     }

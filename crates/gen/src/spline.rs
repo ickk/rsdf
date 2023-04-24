@@ -15,16 +15,17 @@ pub struct Distance {
 
 /// A measure of the "orthogonality" of two vectors.
 ///
-/// Since the area of the parallelogram defined by two normalised vectors is at a maximum (1) when
-/// they are orthogonal and a minimum (0) when they are parallel, we use this area as the measure.
+/// Since the area of the parallelogram defined by two normalised vectors is at
+/// a maximum (1) when they are orthogonal and a minimum (0) when they are
+/// parallel, we use this area as the measure.
 #[inline]
 fn orthogonality(a: Vector, b: Vector) -> f32 {
   Vector::area(a.norm(), b.norm())
 }
 
 impl Spline<'_> {
-  /// Get a `Distance` object at the point containing the signed distance, the signed pseudo
-  /// distance and a measure of orthogonality.
+  /// Get a `Distance` object at the point containing the signed distance, the
+  /// signed pseudo distance and a measure of orthogonality.
   pub fn distance_to(&self, point: Point) -> Distance {
     // find the segment with the smallest distance to the point.
     let mut selected_segment = 0;
@@ -43,7 +44,8 @@ impl Spline<'_> {
       }
     }
 
-    // the measure of orthogonality depends on the end of the spline the point is nearest.
+    // the measure of orthogonality depends on the end of the spline the point
+    // is nearest.
     let orthogonality = if selected_t < 0.0 {
       orthogonality(
         self.segments[selected_segment].vector_start(),
