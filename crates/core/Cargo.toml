@@ -1,6 +1,6 @@
 [package]
-name = "sdf-gen"
-version = "0.0.1"
+name = "rsdf_core"
+version = "0.0.0"
 edition = "2021"
 
 [dependencies]
@@ -8,6 +8,8 @@ png = "0.17"
 itertools = "0.10"
 aberth = "0.0.3"
 arrayvec = "0.7"
+num-derive = "0.3"
+num-traits = "0.2"
 
 [dev-dependencies]
 float-cmp = "0.9"

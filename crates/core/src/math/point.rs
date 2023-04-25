@@ -60,7 +60,7 @@ impl std::ops::Sub<Vector> for Point {
   }
 }
 
-#[cfg(test)]
+#[cfg(any(test, doctest))]
 mod tests {
   use super::*;
 
