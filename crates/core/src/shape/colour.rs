@@ -1,15 +1,16 @@
 use num_derive::FromPrimitive;
 
 #[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
+#[rustfmt::skip]
 pub enum Colour {
-  Black = 0b000,
-  Red = 0b001,
-  Yellow = 0b011,
-  Green = 0b010,
-  Cyan = 0b110,
-  Blue = 0b100,
+  Black   = 0b000,
+  Red     = 0b001,
+  Yellow  = 0b011,
+  Green   = 0b010,
+  Cyan    = 0b110,
+  Blue    = 0b100,
   Magenta = 0b101,
-  White = 0b111,
+  White   = 0b111,
 }
 
 impl std::ops::BitAnd for Colour {
