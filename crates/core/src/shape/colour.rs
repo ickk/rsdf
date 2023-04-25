@@ -5,10 +5,10 @@ use num_derive::FromPrimitive;
 pub enum Colour {
   Black   = 0b000,
   Red     = 0b001,
-  Yellow  = 0b011,
   Green   = 0b010,
-  Cyan    = 0b110,
   Blue    = 0b100,
+  Yellow  = 0b011,
+  Cyan    = 0b110,
   Magenta = 0b101,
   White   = 0b111,
 }
