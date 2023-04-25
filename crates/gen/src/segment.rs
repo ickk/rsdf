@@ -26,7 +26,14 @@ impl Segment {
   ///
   /// Note this param may be in the range (-inf, inf). i.e. it's not restricted by the end-points.
   #[inline]
-  pub fn closest_param_t(&self, point: Point) -> f32 {
+  pub fn closest_param_t(
+    &self,
+    point: Point,
+  ) -> (
+    /* t */ f32,
+    /* dist */ f32,
+    /* pseudo_dist */ f32,
+  ) {
     match *self {
       Line { start, end } => {
         // We can find the closest point on the line by projecting the point onto the line.
@@ -34,7 +41,18 @@ impl Segment {
         let s_e = Vector::from_points(start, end);
         let p_onto_line = s_p.dot(s_e.norm());
         // Then we normalise it with respect to the length of the line.
-        p_onto_line / s_e.abs()
+        let t = p_onto_line / s_e.abs();
+
+        let b = start + (t * Vector::from_points(start, end));
+        let pseudo_dist = Vector::from_points(b, point).abs();
+        let dist = Vector::from_points(
+          start + (t.clamp(0.0, 1.0) * Vector::from_points(start, end)),
+          point,
+        )
+        .abs()
+        .abs();
+
+        (t, dist, pseudo_dist)
       },
       QuadBezier {
         start,
@@ -52,211 +70,174 @@ impl Segment {
         assert!(p2.abs() > 0.0001, "quadratic bezier is degenerate");
         // the control falls directly between start & end. i.e. a line.
 
-        // a*t^3 + b*t^2 + c*t + d = 0
+        // 0 = d + c*t + b*t^2 + a*t^3
         let a = p2.dot(p2);
         let b = 3. * p1.dot(p2);
         let c = 2. * p1.dot(p1) - p2.dot(p0);
         let d = -1. * p1.dot(p0);
+        let polynomial = [d, c, b, a];
 
-        // these need to be clamped, and we need to take the extensions into account
-        let roots = cubic::roots(a, b, c, d);
-        match roots {
-          cubic::Roots::One(t0) => t0,
-          // t0.clamp(0.0, 1.0),
-          cubic::Roots::Two(t0, t1) => {
-            // let (t0, t1) = (t0.clamp(0.0, 1.0), t1.clamp(0.0, 1.0));
-            let d0 = if t0 < 0.0 {
-              let line = Line {
-                start,
-                end: control,
-              };
-              let t0 = line.closest_param_t(point);
-              Self::distance_to_point_at_t(&line, point, t0)
-            } else if t0 > 1.0 {
-              let line = Line {
-                start: control,
-                end,
-              };
-              let t0 = line.closest_param_t(point);
-              Self::distance_to_point_at_t(&line, point, t0)
-            } else {
-              self.distance_to_point_at_t(point, t0)
-            };
-            let d1 = if t1 < 0.0 {
-              let line = Line {
-                start,
-                end: control,
-              };
-              let t1 = line.closest_param_t(point);
-              Self::distance_to_point_at_t(&line, point, t1)
-            } else if t1 > 1.0 {
-              let line = Line {
-                start: control,
-                end,
-              };
-              let t1 = line.closest_param_t(point);
-              Self::distance_to_point_at_t(&line, point, t1)
-            } else {
-              self.distance_to_point_at_t(point, t1)
-            };
-            if d0 <= d1 {
-              t0
-            } else {
-              t1
-            }
-          },
-          cubic::Roots::Three(t0, t1, t2) => {
-            let (mut t0, mut t1, mut t2) = (t0, t1, t2);
-            // let (t0, t1, t2) = (t0.clamp(0.0, 1.0), t1.clamp(0.0, 1.0), t2.clamp(0.0, 1.0));
-            // let d0 = self.distance_to_point_at_t(point, t0);
-            // let d1 = self.distance_to_point_at_t(point, t1);
-            // let d2 = self.distance_to_point_at_t(point, t2);
-            if t0 < 0.0 {
-              let line = Line {
-                start,
-                end: control,
-              };
-              t0 = line.closest_param_t(point);
-            } else if t0 > 1.0 {
-              let line = Line {
-                start: control,
-                end,
-              };
-              t0 = line.closest_param_t(point);
-            }
-            if t1 < 0.0 {
-              let line = Line {
-                start,
-                end: control,
-              };
-              t1 = line.closest_param_t(point);
-            } else if t1 > 1.0 {
-              let line = Line {
-                start: control,
-                end,
-              };
-              t1 = line.closest_param_t(point);
-            }
-            if t2 < 0.0 {
-              let line = Line {
-                start,
-                end: control,
-              };
-              t2 = line.closest_param_t(point);
-            } else if t1 > 1.0 {
-              let line = Line {
-                start: control,
-                end,
-              };
-              t2 = line.closest_param_t(point);
-            }
+        // find roots between in [0,1]
+        const EPSILON: f32 = 0.0001;
+        let mut roots: arrayvec::ArrayVec<f32, 5> = {
+          aberth::aberth(&polynomial, EPSILON)
+            .unwrap()
+            .iter()
+            .filter(|root| {
+              root.im.abs() <= EPSILON && root.re >= 0.0 && root.re <= 1.0
+            })
+            .map(|root| root.re)
+            .collect()
+        };
+        // roots.push(0.0);
+        // roots.push(1.0);
+        // dbg!(&roots);
 
-            let d0 = self.distance_to_point_at_t(point, t0);
-            let d1 = self.distance_to_point_at_t(point, t1);
-            let d2 = self.distance_to_point_at_t(point, t2);
+        let quad_bezier = |t: f32| (t * t * p2 + 2.0 * t * p1 + p0);
 
-            if d0 <= d1 && d0 <= d2 {
-              t0
-            } else if d1 <= d0 && d1 <= d2 {
-              t1
-            } else {
-              t2
-            }
-          },
+        let mut acc = (0.5, f32::INFINITY, f32::INFINITY);
+        if roots.len() > 0 {
+          acc = roots.iter().skip(1).fold(
+            (
+              roots[0],
+              quad_bezier(roots[0].clamp(0.0, 1.0)).abs(),
+              quad_bezier(roots[0]).abs(),
+            ),
+            |acc, &t| {
+              let dist = quad_bezier(t.clamp(0.0, 1.0)).abs();
+              let p_dist = quad_bezier(t).abs();
+              if dist < acc.2 {
+                (t, dist, p_dist)
+              } else {
+                acc
+              }
+            },
+          );
         }
+
+        let start = Segment::Line {
+          start,
+          end: control,
+        }
+        .closest_param_t(point);
+        if start.0 < 0.0 && start.1 < acc.1 {
+          acc = start;
+        }
+
+        let end = Segment::Line {
+          start: control,
+          end,
+        }
+        .closest_param_t(point);
+        if end.0 > 1.0 && end.1 < acc.1 {
+          acc = end;
+        }
+
+        // dbg!(&acc);
+        // let t = acc.0.clamp(0.0, 1.0);
+        // let t = 0.9882472;
+        // dbg!(&t);
+
+        // let dist = quad_bezier(t).abs();
+
+        let r = acc;
+
+        dbg!(r);
+
+        r
       },
       _ => unimplemented!(),
     }
   }
 
   /// Distance between some point `P` and the segment at time `t`. `t` is clamped to [0, 1];
-  #[inline]
-  pub fn distance_to_point_at_t(&self, point: Point, t: f32) -> f32 {
-    let t = t.clamp(0., 1.);
+  // #[inline]
+  // pub fn distance_to_point_at_t(&self, point: Point, t: f32) -> f32 {
+  //   let t = t.clamp(0., 1.);
 
-    match *self {
-      Line { start, end } => {
-        let b = start + (t * Vector::from_points(start, end));
-        Vector::from_points(b, point).abs()
-      },
-      QuadBezier {
-        start,
-        control,
-        end,
-      } => {
-        let b = start
-          + 2. * t * Vector::from_points(start, control)
-          + t
-            * t
-            * (Vector::from_points(end, control)
-              + Vector::from_points(control, start));
-        Vector::from_points(b, point).abs()
-      },
-      _ => unimplemented!(),
-    }
-  }
+  //   match *self {
+  //     Line { start, end } => {
+  //       let b = start + (t * Vector::from_points(start, end));
+  //       Vector::from_points(b, point).abs()
+  //     },
+  //     QuadBezier {
+  //       start,
+  //       control,
+  //       end,
+  //     } => {
+  //       let b = start
+  //         + 2. * t * Vector::from_points(start, control)
+  //         + t
+  //           * t
+  //           * (Vector::from_points(end, control)
+  //             + Vector::from_points(control, start));
+  //       Vector::from_points(b, point).abs()
+  //     },
+  //     _ => unimplemented!(),
+  //   }
+  // }
 
-  #[inline]
-  pub fn signed_pseudo_distance_to_point_at_t(
-    &self,
-    point: Point,
-    t: f32,
-  ) -> f32 {
-    match *self {
-      Line { start, end } => {
-        let signed_area = {
-          let a = Vector::from_points(start, end);
-          let b = Vector::from_points(start, point);
-          a.signed_area(b)
-        };
+  // #[inline]
+  // pub fn signed_pseudo_distance_to_point_at_t(
+  //   &self,
+  //   point: Point,
+  //   t: f32,
+  // ) -> f32 {
+  //   match *self {
+  //     Line { start, end } => {
+  //       let signed_area = {
+  //         let a = Vector::from_points(start, end);
+  //         let b = Vector::from_points(start, point);
+  //         a.signed_area(b)
+  //       };
 
-        Vector::from_points(
-          start + (t * Vector::from_points(start, end)),
-          point,
-        )
-        .abs()
-        .copysign(signed_area)
-      },
-      QuadBezier {
-        start,
-        control,
-        end,
-      } => {
-        let signed_area = {
-          let a = Vector::from_points(start, end);
-          let b = Vector::from_points(start, point);
-          a.signed_area(b)
-        };
+  //       Vector::from_points(
+  //         start + (t * Vector::from_points(start, end)),
+  //         point,
+  //       )
+  //       .abs()
+  //       .copysign(signed_area)
+  //     },
+  //     QuadBezier {
+  //       start,
+  //       control,
+  //       end,
+  //     } => {
+  //       let signed_area = {
+  //         let a = Vector::from_points(start, end);
+  //         let b = Vector::from_points(start, point);
+  //         a.signed_area(b)
+  //       };
 
-        if t <= 0. {
-          let extension = Segment::Line {
-            start: self.start(),
-            end: self.start() + self.vector_start(),
-          };
-          extension
-            .distance_to_point_at_t(point, extension.closest_param_t(point))
-            .copysign(signed_area)
-        } else if t >= 1. {
-          let extension = Segment::Line {
-            start: self.end(),
-            end: self.end() + self.vector_end(),
-          };
-          extension
-            .distance_to_point_at_t(point, extension.closest_param_t(point))
-            .copysign(signed_area)
-        } else {
-          let b = start
-            + 2. * t * Vector::from_points(start, control)
-            + t
-              * t
-              * (Vector::from_points(end, control)
-                + Vector::from_points(control, start));
-          Vector::from_points(b, point).abs().copysign(signed_area)
-        }
-      },
-      _ => unimplemented!(),
-    }
-  }
+  //       if t <= 0. {
+  //         let extension = Segment::Line {
+  //           start: self.start(),
+  //           end: self.start() + self.vector_start(),
+  //         };
+  //         extension
+  //           .distance_to_point_at_t(point, extension.closest_param_t(point).0)
+  //           .copysign(signed_area)
+  //       } else if t >= 1. {
+  //         let extension = Segment::Line {
+  //           start: self.end(),
+  //           end: self.end() + self.vector_end(),
+  //         };
+  //         extension
+  //           .distance_to_point_at_t(point, extension.closest_param_t(point).0)
+  //           .copysign(signed_area)
+  //       } else {
+  //         let b = start
+  //           + 2. * t * Vector::from_points(start, control)
+  //           + t
+  //             * t
+  //             * (Vector::from_points(end, control)
+  //               + Vector::from_points(control, start));
+  //         Vector::from_points(b, point).abs().copysign(signed_area)
+  //       }
+  //     },
+  //     _ => unimplemented!(),
+  //   }
+  // }
 
   /// The vector continuing in the direction of the start of the segment.
   #[inline]

@@ -29,18 +29,31 @@ impl Spline<'_> {
   pub fn distance_to(&self, point: Point) -> Distance {
     // find the segment with the smallest distance to the point.
     let mut selected_segment = 0;
-    let mut selected_t = self.segments[0].closest_param_t(point);
-    let mut selected_distance = self.segments[0]
-      .distance_to_point_at_t(point, selected_t)
-      .abs();
-    for (s, segment) in self.segments.iter().enumerate().skip(1) {
-      let t = segment.closest_param_t(point);
-      let distance = segment.distance_to_point_at_t(point, t).abs();
-
+    let (mut selected_t, mut selected_distance, mut selected_pseudo_dist) = self.segments[0].closest_param_t(point);
+    // let mut selected_distance = self.segments[0]
+    //   .distance_to_point_at_t(point, selected_t)
+    //   .abs();
+    for s in 1..self.segments.len() - 1 {
+    // for (s, segment) in self.segments.iter().enumerate().skip(1) {
+      let segment = &self.segments[s];
+      let (t, distance, pseudo_dist) = segment.closest_param_t(point);
+      // let distance = segment.distance_to_point_at_t(point, t).abs();
+      if t >= 0.0 && t <= 1.0 {
+        if distance < selected_distance {
+          selected_t = t;
+          selected_distance = distance;
+          selected_segment = s;
+          selected_pseudo_dist = pseudo_dist;
+        }
+      }
+    }
+    let (t, distance, pseudo_dist) = self.segments.last().unwrap().closest_param_t(point);
+    if t >= 0.0 {
       if distance < selected_distance {
         selected_t = t;
         selected_distance = distance;
-        selected_segment = s;
+        selected_segment = self.segments.len()-1;
+        selected_pseudo_dist = pseudo_dist;
       }
     }
 
@@ -60,12 +73,12 @@ impl Spline<'_> {
       1.0
     };
 
-    let signed_pseudo_distance = self.segments[selected_segment]
-      .signed_pseudo_distance_to_point_at_t(point, selected_t);
+    // let signed_pseudo_distance = self.segments[selected_segment]
+    //   .signed_pseudo_distance_to_point_at_t(point, selected_t);
 
     Distance {
       distance: selected_distance,
-      signed_pseudo_distance,
+      signed_pseudo_distance: selected_pseudo_dist,
       orthogonality,
     }
   }

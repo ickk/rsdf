@@ -23,11 +23,11 @@ impl Shape {
         let Distance { distance, orthogonality, signed_pseudo_distance } = spline.distance_to(point);
 
         if (spline.channels & Channels::new(0b100)).as_bool()
-          && (distance.abs() < red_distance
+          && (distance.abs() < red_distance // should these both be abs?
             || distance == red_distance
               && (orthogonality > red_orthogonality))
         {
-          red_distance = distance;
+          red_distance = distance; // should this be abs?
           red_orthogonality = orthogonality;
           red_signed_pseudo_distance = signed_pseudo_distance;
         }
