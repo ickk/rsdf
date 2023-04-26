@@ -1,3 +1,5 @@
+use std::ops::Sub;
+
 use super::*;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -12,10 +14,6 @@ impl Point {
     Point { x, y }
   }
 
-  #[inline]
-  pub fn vector_to(self, end: Point) -> Vector {
-    Vector::from_points(self, end)
-  }
 
   #[inline]
   pub fn as_vector(self) -> Vector {
@@ -23,6 +21,15 @@ impl Point {
       x: self.x,
       y: self.y,
     }
+  }
+}
+
+impl Sub<Point> for Point {
+  type Output = Vector;
+
+  #[inline]
+  fn sub(self, rhs: Point) -> Vector {
+    Vector::from_points(rhs, self)
   }
 }
 
@@ -65,11 +72,11 @@ mod tests {
   use super::*;
 
   #[test]
-  fn vector_to() {
+  fn sub() {
     let a = Point { x: 1.0, y: 2.0 };
     let b = Point { x: 5.5, y: 1.5 };
 
-    assert_eq!(Vector { x: 4.5, y: -0.5 }, a.vector_to(b));
+    assert_eq!(Vector { x: 4.5, y: -0.5 }, b - a);
   }
 
   #[test]
