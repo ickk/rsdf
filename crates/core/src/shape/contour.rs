@@ -1,16 +1,29 @@
 use crate::*;
 
+/// The kind of a segment
 #[derive(Debug, Clone, Copy)]
-pub enum Segment {
+enum SegmentKind {
   Line,
   QuadBezier,
   CubicBezier,
 }
 
+type SegmentIndex = (SegmentKind, /* points index */ usize);
+
+/// A reference to a segment in the Contour
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Segment<'contour> {
+  Line(&'contour [Point]),
+  QuadBezier(&'contour [Point]),
+  CubicBezier(&'contour [Point]),
+}
+
+type SplineIndex = (/* length */ usize, /* segments index */ usize);
+
+/// A reference to a spline in the Contour
 #[derive(Debug, Clone, Copy)]
-pub struct Spline {
-  len: usize,
-  index: usize,
+struct Spline<'contour> {
+  segments: &'contour [SegmentIndex],
 }
 
 // A Contour is a path describing a closed region of space.
@@ -18,13 +31,12 @@ pub struct Spline {
 // Sharp corners are assumed to be located at the boundary points of adjacent
 // splines.
 pub struct Contour {
-  /// A buffer with all of the points in it.
-  point_buffer: Vec<Point>,
-  /// A buffer containing Segment kind and an index pairs. Where the index
-  /// points into the point_buffer to the first of the Segment's points.
-  segments: Vec<(Segment, /* `point_buffer` index */ usize)>,
-  /// A buffer containing the splines
-  splines: Vec<Spline>,
+  /// A buffer containing the points
+  points: Vec<Point>,
+  /// A buffer containing references to the segments
+  segments: Vec<SegmentIndex>,
+  /// A buffer containing references to the splines
+  splines: Vec<SplineIndex>,
   /// A buffer containing the colours corresponding to the respective Spline.
   ///
   /// Might not be computed.
@@ -34,6 +46,37 @@ pub struct Contour {
 }
 
 impl Contour {
+  fn get_segment(&self, (kind, i): SegmentIndex) -> Segment {
+    match kind {
+      SegmentKind::Line => Segment::Line(&self.points[i..i + 2]),
+      SegmentKind::QuadBezier => Segment::QuadBezier(&self.points[i..i + 3]),
+      SegmentKind::CubicBezier => Segment::CubicBezier(&self.points[i..i + 4]),
+    }
+  }
+
+  fn segments<'contour>(
+    &'contour self,
+    spline: Spline<'contour>,
+  ) -> impl Iterator<Item = Segment> + 'contour {
+    spline
+      .segments
+      .iter()
+      .map(|segment_index| self.get_segment(*segment_index))
+  }
+
+  fn get_spline(&self, (length, index): SplineIndex) -> Spline {
+    Spline {
+      segments: &self.segments[index..index + length],
+    }
+  }
+
+  fn splines(&self) -> impl Iterator<Item = Spline> {
+    self
+      .splines
+      .iter()
+      .map(|&spline_index| self.get_spline(spline_index))
+  }
+
   pub fn spline_distance(&self, spline_index: usize, point: Point) -> f32 {
     todo!()
   }
@@ -65,6 +108,72 @@ fn sample_cubic_bezier(p: &[Point; 4], t: f32) -> Point {
 
 #[cfg(any(test, doctest))]
 mod tests {
+  #[test]
+  fn contour_get_spline_segments() {
+    use super::*;
+    let contour = Contour {
+      points: vec![
+        (0., 0.).into(),
+        (1., 1.).into(),
+        (2., 2.).into(),
+        (3., 3.).into(),
+        (4., 4.).into(),
+        (5., 5.).into(),
+        (6., 6.).into(),
+        (7., 7.).into(),
+        (0., 0.).into(),
+      ],
+      segments: vec![
+        (SegmentKind::Line, 0),
+        (SegmentKind::QuadBezier, 1),
+        (SegmentKind::CubicBezier, 3),
+        (SegmentKind::Line, 6),
+        (SegmentKind::Line, 7),
+      ],
+      splines: vec![(3, 0), (2, 3)],
+      edge_colours: None,
+    };
+
+    {
+      let result: Vec<_> = contour
+        .segments(contour.get_spline(contour.splines[0]))
+        .collect();
+
+      let s1 = [(0., 0.).into(), (1., 1.).into()];
+      let s2 = [(1., 1.).into(), (2., 2.).into(), (3., 3.).into()];
+      let s3 = [
+        (3., 3.).into(),
+        (4., 4.).into(),
+        (5., 5.).into(),
+        (6., 6.).into(),
+      ];
+
+      let expected = vec![
+        Segment::Line(&s1),
+        Segment::QuadBezier(&s2),
+        Segment::CubicBezier(&s3),
+      ];
+
+      assert_eq!(result, expected);
+    }
+
+    {
+      let result: Vec<_> = contour
+        .segments(contour.get_spline(contour.splines[1]))
+        .collect();
+
+      let s4 = [(6., 6.).into(), (7., 7.).into()];
+      let s5 = [(7., 7.).into(), (0., 0.).into()];
+
+      let expected = vec![
+        Segment::Line(&s4),
+        Segment::Line(&s5),
+      ];
+
+      assert_eq!(result, expected);
+    }
+  }
+
   #[test]
   fn sample_line() {
     use super::*;
