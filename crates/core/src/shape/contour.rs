@@ -1,6 +1,6 @@
 use crate::*;
 use arrayvec::ArrayVec;
-use std::ops::{RangeBounds, Bound};
+use std::ops::{Bound, RangeBounds};
 
 /// The kind of a segment
 #[derive(Debug, Clone, Copy)]
@@ -147,25 +147,45 @@ impl<'contour> Contour {
     &self,
     spline: Spline,
     point: Point,
-  ) -> (/* dist */ f32) {
+  ) -> (f32) {
     use Segment::*;
     let mut selected_dist = f32::INFINITY;
     let mut selected_segment = None;
     let mut selected_t = 0.0;
 
-    let mut segments = self.segments(spline);
-    if let Some(start_segment) = segments.next() {
-
-    }
-
-
-    for (i, segment) in self.segments(spline).enumerate() {
-      // start of the spline
-      if i == 0 {
+    if spline.len() > 1 {
+      for (i, segment) in self.segments(spline).enumerate() {
+        // start of the spline
+        if i == 0 {
+          let (dist, t) = match segment {
+            Line(ps) => line_pseudo_distance(ps, point, ..=1f32),
+            QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, ..=1f32),
+            CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, ..=1f32),
+          };
+          if dist < selected_dist {
+            selected_dist = dist;
+            selected_segment = Some(segment);
+            selected_t = t;
+          }
+        }
+        // end of the spline
+        else if i == spline.len() - 1 {
+          let (dist, t) = match segment {
+            Line(ps) => line_pseudo_distance(ps, point, 0f32..),
+            QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, 0f32..),
+            CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, 0f32..),
+          };
+          if dist < selected_dist {
+            selected_dist = dist;
+            selected_segment = Some(segment);
+            selected_t = t;
+          }
+        }
+        // middle of the spline
         let (dist, t) = match segment {
-          Line(ps) => line_pseudo_distance(ps, point, ..=1.0),
-          QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, ..=1.0),
-          CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, ..=1.0),
+          Line(ps) => line_distance(ps, point),
+          QuadBezier(ps) => quad_bezier_distance(ps, point),
+          CubicBezier(ps) => cubic_bezier_distance(ps, point),
         };
         if dist < selected_dist {
           selected_dist = dist;
@@ -173,24 +193,12 @@ impl<'contour> Contour {
           selected_t = t;
         }
       }
-      // end of the spline
-      else if i == spline.len() - 1 {
-        let (dist, t) = match segment {
-          Line(ps) => line_pseudo_distance(ps, point, 0f32..),
-          QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, 0f32..),
-          CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, 0f32..),
-        };
-        if dist < selected_dist {
-          selected_dist = dist;
-          selected_segment = Some(segment);
-          selected_t = t;
-        }
-      }
-      // middle of the spline
+    } else {
+      let segment = self.segments(spline).next().unwrap();
       let (dist, t) = match segment {
-        Line(ps) => line_distance(ps, point),
-        QuadBezier(ps) => quad_bezier_distance(ps, point),
-        CubicBezier(ps) => cubic_bezier_distance(ps, point),
+        Line(ps) => line_pseudo_distance(ps, point, ..),
+        QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, ..),
+        CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, ..),
       };
       if dist < selected_dist {
         selected_dist = dist;
@@ -284,18 +292,31 @@ fn cubic_bezier_distance(
   (selected_dist, selected_t)
 }
 
-fn range_to_values<R: RangeBounds<f32> + Clone>(range: R) -> (/* start */ f32, /* end */ f32) {
+fn range_to_values<R: RangeBounds<f32> + Clone>(
+  range: R,
+) -> (/* start */ f32, /* end */ f32) {
   use Bound::*;
   match (range.start_bound(), range.end_bound()) {
     (Unbounded, Unbounded) => (-f32::INFINITY, f32::INFINITY),
-    (Unbounded, Included(&end)) | (Unbounded, Excluded(&end)) => (-f32::INFINITY, end),
-    (Included(&start), Unbounded) | (Excluded(&start), Unbounded) => (start, f32::INFINITY),
-    (Included(&start), Included(&end)) | (Included(&start), Excluded(&end)) | (Excluded(&start), Excluded(&end)) | (Excluded(&start), Included(&end)) => (start, end),
+    (Unbounded, Included(&end)) | (Unbounded, Excluded(&end)) => {
+      (-f32::INFINITY, end)
+    },
+    (Included(&start), Unbounded) | (Excluded(&start), Unbounded) => {
+      (start, f32::INFINITY)
+    },
+    (Included(&start), Included(&end))
+    | (Included(&start), Excluded(&end))
+    | (Excluded(&start), Excluded(&end))
+    | (Excluded(&start), Included(&end)) => (start, end),
   }
 }
 
 #[inline]
-fn line_pseudo_distance<R: RangeBounds<f32> + Clone>(ps: &[Point], point: Point, range: R) -> (/* dist */ f32, /* t */ f32) {
+fn line_pseudo_distance<R: RangeBounds<f32> + Clone>(
+  ps: &[Point],
+  point: Point,
+  range: R,
+) -> (/* dist */ f32, /* t */ f32) {
   let (start, end) = range_to_values(range);
 
   let t = find_t_line(ps, point).clamp(start, end);
@@ -388,7 +409,11 @@ fn find_t_line(ps: &[Point], point: Point) -> f32 {
   v0.dot(v1) / v1.dot(v1)
 }
 
-fn find_ts_quad_bezier<R: RangeBounds<f32>>(ps: &[Point], point: Point, range: R) -> ArrayVec<f32, 4> {
+fn find_ts_quad_bezier<R: RangeBounds<f32>>(
+  ps: &[Point],
+  point: Point,
+  range: R,
+) -> ArrayVec<f32, 4> {
   let v2 = ps[2].as_vector() - 2f32 * ps[1].as_vector() + ps[0].as_vector();
   // check if the curve degenerates into a line
   if v2 == Vector::ZERO {
@@ -410,7 +435,11 @@ fn find_ts_quad_bezier<R: RangeBounds<f32>>(ps: &[Point], point: Point, range: R
   roots_in_range(&polynomial, range)
 }
 
-fn find_ts_cubic_bezier<R: RangeBounds<f32>>(ps: &[Point], point: Point, range: R) -> ArrayVec<f32, 6> {
+fn find_ts_cubic_bezier<R: RangeBounds<f32>>(
+  ps: &[Point],
+  point: Point,
+  range: R,
+) -> ArrayVec<f32, 6> {
   let v0 = point - ps[0];
   let v1 = ps[1] - ps[0];
   let v2 = ps[2].as_vector() - 2f32 * ps[1].as_vector() + ps[0].as_vector();

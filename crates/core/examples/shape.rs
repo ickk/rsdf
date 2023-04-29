@@ -14,11 +14,19 @@ fn gen() {
 
   let contour = Contour {
     points: vec![
+      // (20., 20.).into(),
+      // (30., 30.).into(),
+      // (50., 50.).into(),
+      // (60., 30.).into(),
+      // (70., 10.).into(),
+      // (20., 20.).into(),
+
       (70., 10.).into(),
       (60., 30.).into(),
       (50., 50.).into(),
       (30., 30.).into(),
       (20., 20.).into(),
+      (50., 12.).into(),
       (70., 10.).into(),
     ],
     segments: vec![
@@ -26,9 +34,11 @@ fn gen() {
       (SegmentKind::QuadBezier, 1),
       (SegmentKind::Line, 3),
       (SegmentKind::Line, 4),
+      (SegmentKind::Line, 5),
     ],
+    // splines: vec![(3, 0), (1, 3), (1, 4)],
     splines: vec![(3, 0), (1, 3)],
-    spline_colours: Some(vec![Magenta, Yellow]),
+    spline_colours: Some(vec![Magenta, Yellow, Cyan]),
   };
 
   let shape = Shape {
@@ -72,31 +82,24 @@ fn view() {
 
   let sdf_width = info.width as usize;
   let sdf_height = info.height as usize;
-  // dbg!(sdf_width, sdf_height);
 
   let mut image =
     Image::new(&output_filename, [sdf_width * 10, sdf_height * 10]);
 
-  // dbg!(image.width, image.height);
   for y in 0..image.height {
     for x in 0..image.width {
       // normalised coordinates
       let x_norm = x as f32 / (image.width) as f32;
       let y_norm = y as f32 / (image.height) as f32;
-      // dbg!((x_norm, y_norm));
 
       // points in sdf coordinate system
       let x_sdf_p = x_norm * (sdf_width - 1) as f32;
       let y_sdf_p = y_norm * (sdf_height - 1) as f32;
 
-      // dbg!((x_sdf_p, y_sdf_p));
-
       // sample from points, bilinear
       let pixel = {
         let sample_sdf = |x, y| {
-          // let offset = (y * (sdf_height - 2) + x) * 3;
           let offset = (y * sdf_width + x) * 3;
-          // dbg!(offset);
           [bytes[offset], bytes[offset + 1], bytes[offset + 2]]
         };
 
