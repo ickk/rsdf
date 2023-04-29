@@ -62,7 +62,7 @@ impl std::ops::Not for Colour {
 }
 
 #[cfg(any(test, doctest))]
-mod test {
+mod tests {
   use super::Colour::*;
 
   #[test]
@@ -99,7 +99,7 @@ mod test {
   }
 
   #[test]
-  fn bitnot() {
+  fn not() {
     assert_eq!(Cyan, !Red);
     assert_eq!(Magenta, !Green);
     assert_eq!(Yellow, !Blue);

@@ -7,6 +7,8 @@ pub struct Vector {
 }
 
 impl Vector {
+  pub const ZERO: Vector = Vector { x: 0., y: 0. };
+
   #[inline]
   pub fn abs(self) -> f32 {
     (self.x * self.x + self.y * self.y).sqrt()
@@ -19,10 +21,7 @@ impl Vector {
 
   #[inline]
   pub fn from_points(start: Point, end: Point) -> Self {
-    Self {
-      x: end.x - start.x,
-      y: end.y - start.y,
-    }
+    end.inner - start.inner
   }
 
   /// The dot product of a pair of vectors.
@@ -138,8 +137,7 @@ impl std::ops::Add<Point> for Vector {
   #[inline]
   fn add(self, rhs: Point) -> Point {
     Point {
-      x: self.x + rhs.x,
-      y: self.y + rhs.y,
+      inner: self + rhs.inner,
     }
   }
 }
@@ -150,9 +148,18 @@ impl std::ops::Sub<Point> for Vector {
   #[inline]
   fn sub(self, rhs: Point) -> Point {
     Point {
-      x: self.x - rhs.x,
-      y: self.y - rhs.y,
+      inner: self - rhs.inner,
     }
+  }
+}
+
+#[cfg(any(test, doc_test))]
+impl float_cmp::ApproxEq for Vector {
+  type Margin = float_cmp::F32Margin;
+
+  fn approx_eq<T: Into<Self::Margin>>(self, other: Self, margin: T) -> bool {
+    let margin = margin.into();
+    self.x.approx_eq(other.x, margin) && self.y.approx_eq(other.y, margin)
   }
 }
 
@@ -192,9 +199,9 @@ mod tests {
   #[test]
   fn sub_point() {
     let a = Vector { x: 1.0, y: 2.0 };
-    let b = Point { x: 4.0, y: -3.0 };
+    let b = Point::new(4.0, -3.0);
 
-    assert_eq!(Point { x: -3.0, y: 5.0 }, a - b);
+    assert_eq!(Point::new(-3.0, 5.0), a - b);
   }
 
   #[test]
@@ -277,8 +284,8 @@ mod tests {
 
   #[test]
   fn from_points() {
-    let a = Point { x: 1.0, y: 2.0 };
-    let b = Point { x: 5.5, y: 1.5 };
+    let a = Point::new(1.0, 2.0);
+    let b = Point::new(5.5, 1.5);
 
     assert_eq!(Vector { x: 4.5, y: -0.5 }, Vector::from_points(a, b));
   }
