@@ -116,7 +116,7 @@ impl<'contour> Contour {
     }
 
     // unwrap is okay since the selected segment will be always be set assuming
-    // any distances < infinity are calculated above.
+    // any dist < infinity are found above.
     let sign = match selected_segment.unwrap() {
       Line(ps) => sample_line_direction(ps, selected_t)
         .signed_area(point - sample_line(ps, selected_t)),
@@ -201,24 +201,24 @@ fn cubic_bezier_distance(
 }
 
 #[inline]
-fn find_t_line(p: &[Point], point: Point) -> f32 {
-  let v0 = point - p[0];
-  let v1 = p[1] - p[0];
+fn find_t_line(ps: &[Point], point: Point) -> f32 {
+  let v0 = point - ps[0];
+  let v1 = ps[1] - ps[0];
 
   v0.dot(v1) / v1.dot(v1)
 }
 
-fn find_ts_quad_bezier(p: &[Point], point: Point) -> ArrayVec<f32, 4> {
-  let v2 = p[2].as_vector() - 2f32 * p[1].as_vector() + p[0].as_vector();
+fn find_ts_quad_bezier(ps: &[Point], point: Point) -> ArrayVec<f32, 4> {
+  let v2 = ps[2].as_vector() - 2f32 * ps[1].as_vector() + ps[0].as_vector();
   // check if the curve degenerates into a line
   if v2 == Vector::ZERO {
-    let line = [p[0], p[1]];
+    let line = [ps[0], ps[1]];
     let mut a = ArrayVec::new();
     a.push(find_t_line(&line, point));
     return a;
   }
-  let v0 = point - p[0];
-  let v1 = p[1] - p[0];
+  let v0 = point - ps[0];
+  let v1 = ps[1] - ps[0];
 
   let polynomial = [
     -v1.dot(v0),
@@ -230,13 +230,13 @@ fn find_ts_quad_bezier(p: &[Point], point: Point) -> ArrayVec<f32, 4> {
   roots_in_range(&polynomial, 0f32..1f32)
 }
 
-fn find_ts_cubic_bezier(p: &[Point], point: Point) -> ArrayVec<f32, 6> {
-  let v0 = point - p[0];
-  let v1 = p[1] - p[0];
-  let v2 = p[2].as_vector() - 2f32 * p[1].as_vector() + p[0].as_vector();
-  let v3 = p[3].as_vector() - 3f32 * p[2].as_vector()
-    + 3f32 * p[1].as_vector()
-    - p[0].as_vector();
+fn find_ts_cubic_bezier(ps: &[Point], point: Point) -> ArrayVec<f32, 6> {
+  let v0 = point - ps[0];
+  let v1 = ps[1] - ps[0];
+  let v2 = ps[2].as_vector() - 2f32 * ps[1].as_vector() + ps[0].as_vector();
+  let v3 = ps[3].as_vector() - 3f32 * ps[2].as_vector()
+    + 3f32 * ps[1].as_vector()
+    - ps[0].as_vector();
 
   let polynomial = [
     -v1.dot(v0),
@@ -251,37 +251,37 @@ fn find_ts_cubic_bezier(p: &[Point], point: Point) -> ArrayVec<f32, 6> {
 }
 
 #[inline]
-fn sample_line(p: &[Point], t: f32) -> Point {
-  p[0] + t * (p[1] - p[0])
+fn sample_line(ps: &[Point], t: f32) -> Point {
+  ps[0] + t * (ps[1] - ps[0])
 }
 
 #[inline]
 #[rustfmt::skip]
-fn sample_quad_bezier(p: &[Point], t: f32) -> Point {
-  p[0]
+fn sample_quad_bezier(ps: &[Point], t: f32) -> Point {
+  ps[0]
     + 2f32*t
-      * (p[1] - p[0])
+      * (ps[1] - ps[0])
     + t*t
-      * (p[2].as_vector() - 2f32*p[1].as_vector() + p[0].as_vector())
+      * (ps[2].as_vector() - 2f32*ps[1].as_vector() + ps[0].as_vector())
 }
 
 #[inline]
 #[rustfmt::skip]
-fn sample_cubic_bezier(p: &[Point], t: f32) -> Point {
-  p[0]
+fn sample_cubic_bezier(ps: &[Point], t: f32) -> Point {
+  ps[0]
     + 3f32*t
-      * (p[1] - p[0])
+      * (ps[1] - ps[0])
     + 3f32*t*t
-      * (p[2].as_vector() - 2f32*p[1].as_vector() + p[0].as_vector())
+      * (ps[2].as_vector() - 2f32*ps[1].as_vector() + ps[0].as_vector())
     + t.powi(3)
-      * (p[3].as_vector() - 3f32*p[2].as_vector() + 3f32*p[1].as_vector() - p[0].as_vector())
+      * (ps[3].as_vector() - 3f32*ps[2].as_vector() + 3f32*ps[1].as_vector() - ps[0].as_vector())
 }
 
 // Return a vector pointing in the dirction of the tangent of a line at time t.
 // Could have any magnitude.
 #[inline]
-fn sample_line_direction(p: &[Point], t: f32) -> Vector {
-  (p[1] - p[0]).norm()
+fn sample_line_direction(ps: &[Point], t: f32) -> Vector {
+  (ps[1] - ps[0]).norm()
 }
 
 // Return a vector pointing in the dirction of the tangent of a quadratic
@@ -289,11 +289,11 @@ fn sample_line_direction(p: &[Point], t: f32) -> Vector {
 // Could have any magnitude.
 #[inline]
 #[rustfmt::skip]
-fn sample_quad_bezier_direction(p: &[Point], t: f32) -> Vector {
+fn sample_quad_bezier_direction(ps: &[Point], t: f32) -> Vector {
   (
-    2f32*(p[1] - p[0])
+    2f32*(ps[1] - ps[0])
       + 2f32*t
-        * (p[2].as_vector() - 2f32*p[1].as_vector() + p[0].as_vector())
+        * (ps[2].as_vector() - 2f32*ps[1].as_vector() + ps[0].as_vector())
   ).norm()
 }
 
@@ -302,12 +302,12 @@ fn sample_quad_bezier_direction(p: &[Point], t: f32) -> Vector {
 // Could have any magnitude.
 #[inline]
 #[rustfmt::skip]
-fn sample_cubic_bezier_direction(p: &[Point], t: f32) -> Vector {
+fn sample_cubic_bezier_direction(ps: &[Point], t: f32) -> Vector {
   (
-    3f32*(p[1] - p[0])
-      + 6f32*t*(p[2].as_vector() - 2f32*p[1].as_vector() + p[0].as_vector())
+    3f32*(ps[1] - ps[0])
+      + 6f32*t*(ps[2].as_vector() - 2f32*ps[1].as_vector() + ps[0].as_vector())
       + 3f32*t*t
-        * (p[3].as_vector() - 3f32*p[2].as_vector() + 3f32*p[1].as_vector() - p[0].as_vector())
+        * (ps[3].as_vector() - 3f32*ps[2].as_vector() + 3f32*ps[1].as_vector() - ps[0].as_vector())
   ).norm()
 }
 
