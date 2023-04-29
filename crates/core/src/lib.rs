@@ -2,6 +2,6 @@ mod image;
 mod math;
 mod shape;
 
-use image::*;
-use math::*;
-use shape::*;
+pub use image::*;
+pub use math::*;
+pub use shape::*;

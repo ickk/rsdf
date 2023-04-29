@@ -1,16 +1,17 @@
 use crate::*;
 use arrayvec::ArrayVec;
+use std::ops::{RangeBounds, Bound};
 
 /// The kind of a segment
 #[derive(Debug, Clone, Copy)]
-enum SegmentKind {
+pub enum SegmentKind {
   Line,
   QuadBezier,
   CubicBezier,
 }
 
 // SegmentKind implicitly gives the length
-type SegmentIndex = (SegmentKind, /* points index */ usize);
+pub(crate) type SegmentIndex = (SegmentKind, /* points index */ usize);
 
 /// A reference to a segment in the Contour
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -35,8 +36,15 @@ type SplineIndex = (/* length */ usize, /* segments index */ usize);
 
 /// A reference to a spline in the Contour
 #[derive(Debug, Clone, Copy)]
-struct Spline<'contour> {
-  segments: &'contour [SegmentIndex],
+pub(crate) struct Spline<'contour> {
+  pub(crate) segments: &'contour [SegmentIndex],
+  pub colour: Option<Colour>,
+}
+
+impl Spline<'_> {
+  pub fn len(&self) -> usize {
+    self.segments.len()
+  }
 }
 
 // A Contour is a path describing a closed region of space.
@@ -45,15 +53,15 @@ struct Spline<'contour> {
 // splines.
 pub struct Contour {
   /// A buffer containing the points
-  points: Vec<Point>,
+  pub points: Vec<Point>,
   /// A buffer containing references to the segments
-  segments: Vec<SegmentIndex>,
+  pub segments: Vec<SegmentIndex>,
   /// A buffer containing references to the splines
-  splines: Vec<SplineIndex>,
+  pub splines: Vec<SplineIndex>,
   /// A buffer containing the colours corresponding to the respective Spline.
   ///
   /// Might not be computed.
-  edge_colours: Option<Vec<Colour>>,
+  pub spline_colours: Option<Vec<Colour>>,
   // TODO: add a flag for fully-smooth. Otherwise there's an ambiguity
   // between teardrop and fully-smooth contours.
 }
@@ -69,9 +77,11 @@ impl<'contour> Contour {
   }
 
   #[inline]
-  fn get_spline(&self, (length, index): SplineIndex) -> Spline {
+  fn get_spline(&self, i: usize) -> Spline {
+    let (length, index) = self.splines[i];
     Spline {
       segments: &self.segments[index..index + length],
+      colour: self.spline_colours.as_deref().map(|cs| cs[i]),
     }
   }
 
@@ -86,23 +96,23 @@ impl<'contour> Contour {
       .map(|segment_index| self.get_segment(*segment_index))
   }
 
-  fn splines(&self) -> impl Iterator<Item = Spline> {
-    self
-      .splines
-      .iter()
-      .map(|&spline_index| self.get_spline(spline_index))
+  pub(crate) fn splines(&self) -> impl Iterator<Item = Spline> {
+    (0..self.splines.len()).map(|i| self.get_spline(i))
   }
 
   /// Calculate the signed distance to the spline
-  fn spline_distance(&self, spline: Spline, point: Point) -> f32 {
+  pub(crate) fn spline_distance(
+    &self,
+    spline: Spline,
+    point: Point,
+  ) -> (/* dist */ f32, /* orth */ f32) {
     use Segment::*;
-    // (/* dist */ f32, /* pseudo_dist */ f32) {
     let mut selected_dist = f32::INFINITY;
     // initial values don't matter since the first distance will always be set
     let mut selected_segment = None;
     let mut selected_t = 0.0;
 
-    for (segment_index, segment) in self.segments(spline).enumerate() {
+    for segment in self.segments(spline) {
       let (dist, t) = match segment {
         Line(ps) => line_distance(ps, point),
         QuadBezier(ps) => quad_bezier_distance(ps, point),
@@ -117,16 +127,90 @@ impl<'contour> Contour {
 
     // unwrap is okay since the selected segment will be always be set assuming
     // any dist < infinity are found above.
-    let sign = match selected_segment.unwrap() {
+    let orthogonality = match selected_segment.unwrap() {
       Line(ps) => sample_line_direction(ps, selected_t)
-        .signed_area(point - sample_line(ps, selected_t)),
+        .signed_area((point - sample_line(ps, selected_t)).norm()),
       QuadBezier(ps) => sample_quad_bezier_direction(ps, selected_t)
-        .signed_area(point - sample_quad_bezier(ps, selected_t)),
+        .signed_area((point - sample_quad_bezier(ps, selected_t)).norm()),
       CubicBezier(ps) => sample_cubic_bezier_direction(ps, selected_t)
-        .signed_area(point - sample_cubic_bezier(ps, selected_t)),
+        .signed_area((point - sample_cubic_bezier(ps, selected_t)).norm()),
     };
 
-    selected_dist.copysign(sign)
+    // kind of redundant
+    let signed_dist = selected_dist.copysign(orthogonality);
+
+    (signed_dist, orthogonality)
+  }
+
+  /// Calculate the signed pseudo distance to the spline
+  pub(crate) fn spline_pseudo_distance(
+    &self,
+    spline: Spline,
+    point: Point,
+  ) -> (/* dist */ f32) {
+    use Segment::*;
+    let mut selected_dist = f32::INFINITY;
+    let mut selected_segment = None;
+    let mut selected_t = 0.0;
+
+    let mut segments = self.segments(spline);
+    if let Some(start_segment) = segments.next() {
+
+    }
+
+
+    for (i, segment) in self.segments(spline).enumerate() {
+      // start of the spline
+      if i == 0 {
+        let (dist, t) = match segment {
+          Line(ps) => line_pseudo_distance(ps, point, ..=1.0),
+          QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, ..=1.0),
+          CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, ..=1.0),
+        };
+        if dist < selected_dist {
+          selected_dist = dist;
+          selected_segment = Some(segment);
+          selected_t = t;
+        }
+      }
+      // end of the spline
+      else if i == spline.len() - 1 {
+        let (dist, t) = match segment {
+          Line(ps) => line_pseudo_distance(ps, point, 0f32..),
+          QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, 0f32..),
+          CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, 0f32..),
+        };
+        if dist < selected_dist {
+          selected_dist = dist;
+          selected_segment = Some(segment);
+          selected_t = t;
+        }
+      }
+      // middle of the spline
+      let (dist, t) = match segment {
+        Line(ps) => line_distance(ps, point),
+        QuadBezier(ps) => quad_bezier_distance(ps, point),
+        CubicBezier(ps) => cubic_bezier_distance(ps, point),
+      };
+      if dist < selected_dist {
+        selected_dist = dist;
+        selected_segment = Some(segment);
+        selected_t = t;
+      }
+    }
+
+    let sign = match selected_segment.unwrap() {
+      Line(ps) => sample_line_direction(ps, selected_t)
+        .signed_area((point - sample_line(ps, selected_t))),
+      QuadBezier(ps) => sample_quad_bezier_direction(ps, selected_t)
+        .signed_area((point - sample_quad_bezier(ps, selected_t))),
+      CubicBezier(ps) => sample_cubic_bezier_direction(ps, selected_t)
+        .signed_area((point - sample_cubic_bezier(ps, selected_t))),
+    };
+
+    let signed_pseudo_dist = selected_dist.copysign(sign);
+
+    signed_pseudo_dist
   }
 }
 
@@ -158,7 +242,7 @@ fn quad_bezier_distance(
     }
   }
   // check perpendiculars
-  for t in find_ts_quad_bezier(ps, point) {
+  for t in find_ts_quad_bezier(ps, point, 0f32..=1f32) {
     let dist = (point - sample_quad_bezier(ps, t)).abs();
     if dist < selected_dist {
       selected_dist = dist;
@@ -189,11 +273,107 @@ fn cubic_bezier_distance(
     }
   }
   // check perpendiculars
-  for t in find_ts_cubic_bezier(ps, point) {
+  for t in find_ts_cubic_bezier(ps, point, 0f32..=1f32) {
     let dist = (point - sample_cubic_bezier(ps, t)).abs();
     if dist < selected_dist {
       selected_dist = dist;
       selected_t = t;
+    }
+  }
+
+  (selected_dist, selected_t)
+}
+
+fn range_to_values<R: RangeBounds<f32> + Clone>(range: R) -> (/* start */ f32, /* end */ f32) {
+  use Bound::*;
+  match (range.start_bound(), range.end_bound()) {
+    (Unbounded, Unbounded) => (-f32::INFINITY, f32::INFINITY),
+    (Unbounded, Included(&end)) | (Unbounded, Excluded(&end)) => (-f32::INFINITY, end),
+    (Included(&start), Unbounded) | (Excluded(&start), Unbounded) => (start, f32::INFINITY),
+    (Included(&start), Included(&end)) | (Included(&start), Excluded(&end)) | (Excluded(&start), Excluded(&end)) | (Excluded(&start), Included(&end)) => (start, end),
+  }
+}
+
+#[inline]
+fn line_pseudo_distance<R: RangeBounds<f32> + Clone>(ps: &[Point], point: Point, range: R) -> (/* dist */ f32, /* t */ f32) {
+  let (start, end) = range_to_values(range);
+
+  let t = find_t_line(ps, point).clamp(start, end);
+  let dist = (point - sample_line(ps, t)).abs();
+
+  (dist, t)
+}
+
+#[inline]
+fn quad_bezier_pseudo_distance<R: RangeBounds<f32> + Clone>(
+  ps: &[Point],
+  point: Point,
+  range: R,
+) -> (/* dist */ f32, /* t */ f32) {
+  let mut selected_t = 0.; // initial value doesn't matter
+  let mut selected_dist = f32::INFINITY;
+
+  // check perpendiculars
+  for t in find_ts_quad_bezier(ps, point, range.clone()) {
+    let dist = (point - sample_quad_bezier(ps, t)).abs();
+    if dist < selected_dist {
+      selected_dist = dist;
+      selected_t = t;
+    }
+  }
+
+  // check any end-points
+  let (start, end) = range_to_values(range);
+  if start.is_finite() {
+    let start_dist = (point - sample_quad_bezier(ps, start)).abs();
+    if start_dist < selected_dist {
+      selected_dist = start_dist;
+      selected_t = start;
+    }
+  }
+  if end.is_finite() {
+    let end_dist = (point - sample_quad_bezier(ps, end)).abs();
+    if end_dist < selected_dist {
+      selected_dist = end_dist;
+      selected_t = end;
+    }
+  }
+
+  (selected_dist, selected_t)
+}
+
+#[inline]
+fn cubic_bezier_pseudo_distance<R: RangeBounds<f32> + Clone>(
+  ps: &[Point],
+  point: Point,
+  range: R,
+) -> (/* dist */ f32, /* t */ f32) {
+  let mut selected_t = 0.; // initial value doesn't matter
+  let mut selected_dist = f32::INFINITY;
+
+  // check perpendiculars
+  for t in find_ts_cubic_bezier(ps, point, ..) {
+    let dist = (point - sample_cubic_bezier(ps, t)).abs();
+    if dist < selected_dist {
+      selected_dist = dist;
+      selected_t = t;
+    }
+  }
+
+  // check any end-points
+  let (start, end) = range_to_values(range);
+  if start.is_finite() {
+    let start_dist = (point - sample_quad_bezier(ps, start)).abs();
+    if start_dist < selected_dist {
+      selected_dist = start_dist;
+      selected_t = start;
+    }
+  }
+  if end.is_finite() {
+    let end_dist = (point - sample_quad_bezier(ps, end)).abs();
+    if end_dist < selected_dist {
+      selected_dist = end_dist;
+      selected_t = end;
     }
   }
 
@@ -208,7 +388,7 @@ fn find_t_line(ps: &[Point], point: Point) -> f32 {
   v0.dot(v1) / v1.dot(v1)
 }
 
-fn find_ts_quad_bezier(ps: &[Point], point: Point) -> ArrayVec<f32, 4> {
+fn find_ts_quad_bezier<R: RangeBounds<f32>>(ps: &[Point], point: Point, range: R) -> ArrayVec<f32, 4> {
   let v2 = ps[2].as_vector() - 2f32 * ps[1].as_vector() + ps[0].as_vector();
   // check if the curve degenerates into a line
   if v2 == Vector::ZERO {
@@ -227,10 +407,10 @@ fn find_ts_quad_bezier(ps: &[Point], point: Point) -> ArrayVec<f32, 4> {
     v2.dot(v2),
   ];
 
-  roots_in_range(&polynomial, 0f32..1f32)
+  roots_in_range(&polynomial, range)
 }
 
-fn find_ts_cubic_bezier(ps: &[Point], point: Point) -> ArrayVec<f32, 6> {
+fn find_ts_cubic_bezier<R: RangeBounds<f32>>(ps: &[Point], point: Point, range: R) -> ArrayVec<f32, 6> {
   let v0 = point - ps[0];
   let v1 = ps[1] - ps[0];
   let v2 = ps[2].as_vector() - 2f32 * ps[1].as_vector() + ps[0].as_vector();
@@ -247,7 +427,7 @@ fn find_ts_cubic_bezier(ps: &[Point], point: Point) -> ArrayVec<f32, 6> {
     v3.dot(v3),
   ];
 
-  roots_in_range(&polynomial, 0f32..1f32)
+  roots_in_range(&polynomial, range)
 }
 
 #[inline]
@@ -278,7 +458,6 @@ fn sample_cubic_bezier(ps: &[Point], t: f32) -> Point {
 }
 
 // Return a vector pointing in the dirction of the tangent of a line at time t.
-// Could have any magnitude.
 #[inline]
 fn sample_line_direction(ps: &[Point], t: f32) -> Vector {
   (ps[1] - ps[0]).norm()
@@ -286,7 +465,6 @@ fn sample_line_direction(ps: &[Point], t: f32) -> Vector {
 
 // Return a vector pointing in the dirction of the tangent of a quadratic
 // bezier at time t.
-// Could have any magnitude.
 #[inline]
 #[rustfmt::skip]
 fn sample_quad_bezier_direction(ps: &[Point], t: f32) -> Vector {
@@ -299,7 +477,6 @@ fn sample_quad_bezier_direction(ps: &[Point], t: f32) -> Vector {
 
 // Return a vector pointing in the dirction of the tangent of a cubic bezier at
 // time t.
-// Could have any magnitude.
 #[inline]
 #[rustfmt::skip]
 fn sample_cubic_bezier_direction(ps: &[Point], t: f32) -> Vector {
@@ -314,6 +491,77 @@ fn sample_cubic_bezier_direction(ps: &[Point], t: f32) -> Vector {
 #[cfg(any(test, doctest))]
 mod tests {
   use float_cmp::assert_approx_eq;
+
+  #[test]
+  fn spline_pseudo_distance() {
+    use super::*;
+    use std::f32::consts::SQRT_2;
+
+    let contour = Contour {
+      points: vec![
+        (5., -1.).into(),
+        (4., 1.).into(),
+        (3., 3.).into(),
+        (1., 1.).into(),
+        (0., 0.).into(),
+        (5., -1.).into(),
+      ],
+      segments: vec![
+        (SegmentKind::Line, 0),
+        (SegmentKind::QuadBezier, 1),
+        (SegmentKind::Line, 3),
+        (SegmentKind::Line, 4),
+      ],
+      splines: vec![(3, 0), (1, 3)],
+      spline_colours: None,
+    };
+
+    let spline = contour.splines().next().unwrap();
+
+    {
+      let point = (0., 0.).into();
+      let dist = contour.spline_pseudo_distance(spline, point);
+      let expected = 0.;
+      assert_approx_eq!(f32, dist, expected);
+    }
+    {
+      let point = (-1., 1.).into();
+      let dist = contour.spline_pseudo_distance(spline, point);
+      let expected = -SQRT_2;
+      assert_approx_eq!(f32, dist, expected);
+    }
+    {
+      let point = (-1., -1.).into();
+      // lies exactly on the curve so the sign is undefined
+      let dist = contour.spline_pseudo_distance(spline, point);
+      let expected = 0.;
+      assert_approx_eq!(f32, dist, expected);
+    }
+    {
+      let point = (0.5, 1.5).into();
+      let dist = contour.spline_pseudo_distance(spline, point);
+      let expected = -SQRT_2 / 2.;
+      assert_approx_eq!(f32, dist, expected);
+    }
+    {
+      let point = (2.75, 3.).into();
+      let dist = contour.spline_pseudo_distance(spline, point);
+      let expected = -1.;
+      assert_approx_eq!(f32, dist, expected);
+    }
+    {
+      let point = (2.75, 1.5).into();
+      let dist = contour.spline_pseudo_distance(spline, point);
+      let expected = 0.5;
+      assert_approx_eq!(f32, dist, expected);
+    }
+    {
+      let point = (5., 0.).into();
+      let dist = contour.spline_pseudo_distance(spline, point);
+      let expected = -1. / 5f32.sqrt();
+      assert_approx_eq!(f32, dist, expected);
+    }
+  }
 
   #[test]
   fn spline_distance() {
@@ -336,51 +584,51 @@ mod tests {
         (SegmentKind::Line, 4),
       ],
       splines: vec![(3, 0), (1, 3)],
-      edge_colours: None,
+      spline_colours: None,
     };
 
     let spline = contour.splines().next().unwrap();
 
     {
       let point = (0., 0.).into();
-      let dist = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance(spline, point);
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., 1.).into();
-      let dist = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance(spline, point);
       let expected = -SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., -1.).into();
       // lies exactly on the curve so the sign is undefined
-      let dist = contour.spline_distance(spline, point).abs();
+      let dist = contour.spline_distance(spline, point).0.abs();
       let expected = SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (0.5, 1.5).into();
-      let dist = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance(spline, point);
       let expected = -SQRT_2 / 2.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 3.).into();
-      let dist = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance(spline, point);
       let expected = -1.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 1.5).into();
-      let dist = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance(spline, point);
       let expected = 0.5;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (5., 0.).into();
-      let dist = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance(spline, point);
       let expected = -1. / 5f32.sqrt();
       assert_approx_eq!(f32, dist, expected);
     }
@@ -409,13 +657,11 @@ mod tests {
         (SegmentKind::Line, 7),
       ],
       splines: vec![(3, 0), (2, 3)],
-      edge_colours: None,
+      spline_colours: None,
     };
 
     {
-      let result: Vec<_> = contour
-        .segments(contour.get_spline(contour.splines[0]))
-        .collect();
+      let result: Vec<_> = contour.segments(contour.get_spline(0)).collect();
 
       let s1 = [(0., 0.).into(), (1., 1.).into()];
       let s2 = [(1., 1.).into(), (2., 2.).into(), (3., 3.).into()];
@@ -436,9 +682,7 @@ mod tests {
     }
 
     {
-      let result: Vec<_> = contour
-        .segments(contour.get_spline(contour.splines[1]))
-        .collect();
+      let result: Vec<_> = contour.segments(contour.get_spline(1)).collect();
 
       let s4 = [(6., 6.).into(), (7., 7.).into()];
       let s5 = [(7., 7.).into(), (0., 0.).into()];
