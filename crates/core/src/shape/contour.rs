@@ -17,7 +17,7 @@ type SplineIndex = (/* length */ usize, /* segments index */ usize);
 #[derive(Debug, Clone, Copy)]
 pub struct Spline<'contour> {
   pub segments: &'contour [SegmentIndex],
-  pub colour: Option<Colour>,
+  pub colour: Colour,
 }
 
 impl Spline<'_> {
@@ -40,7 +40,7 @@ pub struct Contour {
   /// A buffer containing the colours corresponding to the respective Spline.
   ///
   /// Might not be computed.
-  pub spline_colours: Option<Vec<Colour>>,
+  pub spline_colours: Vec<Colour>,
   // TODO: add a flag for fully-smooth. Otherwise there's an ambiguity
   // between teardrop and fully-smooth contours.
 }
@@ -60,7 +60,7 @@ impl<'contour> Contour {
     let (length, index) = self.splines[i];
     Spline {
       segments: &self.segments[index..index + length],
-      colour: self.spline_colours.as_deref().map(|cs| cs[i]),
+      colour: self.spline_colours[i],
     }
   }
 
@@ -232,7 +232,7 @@ mod tests {
         (SegmentKind::Line, 4),
       ],
       splines: vec![(3, 0), (1, 3)],
-      spline_colours: None,
+      spline_colours: vec![Magenta, Yellow],
     };
 
     let spline = contour.splines().next().unwrap();
@@ -303,7 +303,7 @@ mod tests {
         (SegmentKind::Line, 4),
       ],
       splines: vec![(3, 0), (1, 3)],
-      spline_colours: None,
+      spline_colours: vec![Magenta, Yellow],
     };
 
     let spline = contour.splines().next().unwrap();
@@ -376,7 +376,7 @@ mod tests {
         (SegmentKind::Line, 7),
       ],
       splines: vec![(3, 0), (2, 3)],
-      spline_colours: None,
+      spline_colours: vec![Magenta, Yellow],
     };
 
     {

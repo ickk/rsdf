@@ -34,7 +34,7 @@ impl Shape {
       for spline in contour.splines() {
         let (dist, orth) = contour.spline_distance(spline, point);
 
-        if (spline.colour.unwrap() & Red == Red)
+        if (spline.colour & Red == Red)
           && (dist.abs() < red_dist.abs()
             || (dist.abs() == red_dist.abs() && orth.abs() >= red_orth))
         {
@@ -43,7 +43,7 @@ impl Shape {
           red_spline = Some(spline);
         }
 
-        if (spline.colour.unwrap() & Green == Green)
+        if (spline.colour & Green == Green)
           && (dist.abs() < green_dist.abs()
             || (dist.abs() == green_dist.abs() && orth.abs() >= green_orth))
         {
@@ -52,7 +52,7 @@ impl Shape {
           green_spline = Some(spline);
         }
 
-        if (spline.colour.unwrap() & Blue == Blue)
+        if (spline.colour & Blue == Blue)
           && (dist.abs() < blue_dist.abs()
             || (dist.abs() == blue_dist.abs() && orth.abs() >= blue_orth))
         {

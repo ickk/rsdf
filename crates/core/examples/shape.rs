@@ -30,7 +30,7 @@ fn gen() {
       (SegmentKind::QuadBezier, 4),
     ],
     splines: vec![(1, 0), (1, 1), (1, 2)],
-    spline_colours: Some(vec![Magenta, Yellow, Cyan]),
+    spline_colours: vec![Magenta, Yellow, Cyan],
   };
 
   let shape = Shape {
