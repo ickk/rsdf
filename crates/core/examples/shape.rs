@@ -13,20 +13,14 @@ fn gen() {
   eprintln!("{filename:?}");
 
   let points: Vec<Point> = vec![
-    // (20., 20.).into(),
-    // (30., 30.).into(),
-    // (50., 50.).into(),
-    // (60., 30.).into(),
-    // (70., 10.).into(),
-    // (20., 20.).into(),
-    (70., 10.).into(),
-    (60., 30.).into(),
-    (50., 50.).into(),
-    (30., 30.).into(),
-    (20., 20.).into(),
-    (48., 20.).into(),
-    (38., 5.).into(),
-    (70., 10.).into(),
+    (70., 10.).into(), // 0
+    (60., 30.).into(), // 1
+    (50., 50.).into(), // 2
+    (30., 30.).into(), // 3
+    (20., 20.).into(), // 4
+    (38., 5.).into(),  // 6
+    (48., 20.).into(), // 5
+    (70., 10.).into(), // 7
   ];
 
   let points = points.iter().map(|&v| v + (5., 20.).into()).collect();
@@ -34,17 +28,12 @@ fn gen() {
   let contour = Contour {
     points,
     segments: vec![
-      (SegmentKind::Line, 0),
-      (SegmentKind::QuadBezier, 1),
-      // (SegmentKind::Line, 1),
-      // (SegmentKind::Line, 2),
-      (SegmentKind::Line, 3),
-      (SegmentKind::Line, 4),
-      (SegmentKind::Line, 5),
-      (SegmentKind::Line, 6),
+      (SegmentKind::Line, 0),        // 0
+      (SegmentKind::QuadBezier, 1),  // 1
+      (SegmentKind::Line, 3),        // 2
+      (SegmentKind::CubicBezier, 4), // 3
     ],
-    // splines: vec![(3, 0), (1, 3), (1, 4)],
-    splines: vec![(3, 0), (1, 3), (1, 4), (1, 5)],
+    splines: vec![(3, 0), (1, 3)],
     spline_colours: Some(vec![Magenta, Yellow, Cyan, Yellow]),
   };
 
@@ -91,7 +80,7 @@ fn view() {
   let sdf_height = info.height as usize;
 
   let mut image =
-    Image::new(&output_filename, [sdf_width * 10, sdf_height * 10]);
+    Image::new(&output_filename, [sdf_width * 100, sdf_height * 100]);
 
   for y in 0..image.height {
     for x in 0..image.width {

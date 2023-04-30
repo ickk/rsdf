@@ -54,30 +54,7 @@ pub fn cubic_bezier_distance(
   ps: &[Point],
   point: Point,
 ) -> (/* dist */ f32, /* t */ f32) {
-  let mut selected_t;
-  let mut selected_dist;
-  // check endpoints
-  {
-    // start
-    selected_t = 0.0;
-    selected_dist = (point - sample_cubic_bezier(ps, selected_t)).abs();
-    // end
-    let end_dist = (point - sample_cubic_bezier(ps, 1.0)).abs();
-    if end_dist < selected_dist {
-      selected_dist = end_dist;
-      selected_t = 1.0;
-    }
-  }
-  // check perpendiculars
-  for t in find_ts_cubic_bezier(ps, point, 0f32..=1f32) {
-    let dist = (point - sample_cubic_bezier(ps, t)).abs();
-    if dist < selected_dist {
-      selected_dist = dist;
-      selected_t = t;
-    }
-  }
-
-  (selected_dist, selected_t)
+  cubic_bezier_pseudo_distance(ps, point, 0.0..=1.0)
 }
 
 #[inline]
@@ -90,7 +67,7 @@ pub fn cubic_bezier_pseudo_distance<R: RangeBounds<f32> + Clone>(
   let mut selected_dist = f32::INFINITY;
 
   // check perpendiculars
-  for t in find_ts_cubic_bezier(ps, point, ..) {
+  for t in find_ts_cubic_bezier(ps, point, range.clone()) {
     let dist = (point - sample_cubic_bezier(ps, t)).abs();
     if dist < selected_dist {
       selected_dist = dist;
@@ -101,14 +78,14 @@ pub fn cubic_bezier_pseudo_distance<R: RangeBounds<f32> + Clone>(
   // check any end-points
   let (start, end) = range_to_values(range);
   if start.is_finite() {
-    let start_dist = (point - sample_quad_bezier(ps, start)).abs();
+    let start_dist = (point - sample_cubic_bezier(ps, start)).abs();
     if start_dist < selected_dist {
       selected_dist = start_dist;
       selected_t = start;
     }
   }
   if end.is_finite() {
-    let end_dist = (point - sample_quad_bezier(ps, end)).abs();
+    let end_dist = (point - sample_cubic_bezier(ps, end)).abs();
     if end_dist < selected_dist {
       selected_dist = end_dist;
       selected_t = end;

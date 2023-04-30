@@ -53,30 +53,7 @@ pub fn quad_bezier_distance(
   ps: &[Point],
   point: Point,
 ) -> (/* dist */ f32, /* t */ f32) {
-  let mut selected_t;
-  let mut selected_dist;
-  // check endpoints
-  {
-    // start
-    selected_t = 0.0;
-    selected_dist = (point - sample_quad_bezier(ps, selected_t)).abs();
-    // end
-    let end_dist = (point - sample_quad_bezier(ps, 1.0)).abs();
-    if end_dist < selected_dist {
-      selected_dist = end_dist;
-      selected_t = 1.0;
-    }
-  }
-  // check perpendiculars
-  for t in find_ts_quad_bezier(ps, point, 0f32..=1f32) {
-    let dist = (point - sample_quad_bezier(ps, t)).abs();
-    if dist < selected_dist {
-      selected_dist = dist;
-      selected_t = t;
-    }
-  }
-
-  (selected_dist, selected_t)
+  quad_bezier_pseudo_distance(ps, point, 0.0..=1.0)
 }
 
 #[inline]
