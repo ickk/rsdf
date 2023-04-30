@@ -1,7 +1,14 @@
-Currently non-functional WIP implementation of [Chlumsky's MSDF paper][msdf-paper].
+WIP implementation of [Chlumsky's MSDF paper][msdf-paper].
 
 [msdf-paper]: https://github.com/Chlumsky/msdfgen/files/3050967/thesis.pdf "Shape Decomposition for Multi-channel Distance Field"
 
-Contours use a CCW-positive winding order. That is, contours within a shape
-that are counter-clockwise are *additive* to the fill region of the shape,
-where-as clockwise contours are *subtractive*.
+Currently the core is capable of decomposing shapes made of lines, quadratic
+bezier curvers & cubic bezier curves, however there is still work to do to
+make it more capable and reliable.
+
+![raster signed distance field output example](./shape.png)
+![image rendered using the rsdf](./shape_render.png)
+
+Future work:
+ - implement additional primitives (arcs, b-splines, et c.)
+ - implement front-end asset processors (svg, fonts)
