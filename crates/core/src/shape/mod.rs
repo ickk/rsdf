@@ -1,7 +1,9 @@
 pub mod colour;
 pub mod contour;
+pub mod primitives;
 pub use colour::{Colour, Colour::*};
 pub use contour::*;
+pub use primitives::*;
 
 use crate::*;
 
@@ -28,7 +30,7 @@ impl Shape {
     let mut blue_pseudo_dist = -f32::INFINITY;
 
     // for contour in self.contours.iter() {
-    if let Some(contour) = self.contours.iter().next() {
+    if let Some(contour) = self.contours.first() {
       for spline in contour.splines() {
         let (dist, orth) = contour.spline_distance(spline, point);
 

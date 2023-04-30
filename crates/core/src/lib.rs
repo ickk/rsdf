@@ -2,6 +2,9 @@ mod image;
 mod math;
 mod shape;
 
-pub use image::*;
-pub use math::*;
-pub use shape::*;
+pub(crate) use math::*;
+pub(crate) use shape::*;
+
+pub use image::Image;
+pub use math::{distance_color, Point};
+pub use shape::{Colour, Colour::*, Contour, SegmentKind, Shape};
