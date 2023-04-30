@@ -127,19 +127,28 @@ impl<'contour> Contour {
 
     // unwrap is okay since the selected segment will be always be set assuming
     // any dist < infinity are found above.
-    let orthogonality = match selected_segment.unwrap() {
-      Line(ps) => sample_line_direction(ps, selected_t)
-        .signed_area((point - sample_line(ps, selected_t)).norm()),
-      QuadBezier(ps) => sample_quad_bezier_direction(ps, selected_t)
-        .signed_area((point - sample_quad_bezier(ps, selected_t)).norm()),
-      CubicBezier(ps) => sample_cubic_bezier_direction(ps, selected_t)
-        .signed_area((point - sample_cubic_bezier(ps, selected_t)).norm()),
+    let mut orthogonality = match selected_segment.unwrap() {
+      Line(ps) => sample_line_direction(ps, selected_t.clamp(0., 1.))
+        .signed_area(
+          (point - sample_line(ps, selected_t.clamp(0., 1.))).norm(),
+        ),
+      QuadBezier(ps) => {
+        sample_quad_bezier_direction(ps, selected_t.clamp(0., 1.)).signed_area(
+          (point - sample_quad_bezier(ps, selected_t.clamp(0., 1.))).norm(),
+        )
+      },
+      CubicBezier(ps) => {
+        sample_cubic_bezier_direction(ps, selected_t.clamp(0., 1.))
+          .signed_area(
+            (point - sample_cubic_bezier(ps, selected_t.clamp(0., 1.))).norm(),
+          )
+      },
     };
 
     // kind of redundant
     let signed_dist = selected_dist.copysign(orthogonality);
 
-    (signed_dist, orthogonality)
+    (signed_dist, orthogonality.abs())
   }
 
   /// Calculate the signed pseudo distance to the spline
@@ -160,7 +169,9 @@ impl<'contour> Contour {
           let (dist, t) = match segment {
             Line(ps) => line_pseudo_distance(ps, point, ..=1f32),
             QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, ..=1f32),
-            CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, ..=1f32),
+            CubicBezier(ps) => {
+              cubic_bezier_pseudo_distance(ps, point, ..=1f32)
+            },
           };
           if dist < selected_dist {
             selected_dist = dist;
@@ -194,6 +205,7 @@ impl<'contour> Contour {
         }
       }
     } else {
+      // There's only one segment in this spline
       let segment = self.segments(spline).next().unwrap();
       let (dist, t) = match segment {
         Line(ps) => line_pseudo_distance(ps, point, ..),
@@ -320,6 +332,9 @@ fn line_pseudo_distance<R: RangeBounds<f32> + Clone>(
   let (start, end) = range_to_values(range);
 
   let t = find_t_line(ps, point).clamp(start, end);
+  if !(start..=end).contains(&t) {
+    dbg!(t);
+  }
   let dist = (point - sample_line(ps, t)).abs();
 
   (dist, t)

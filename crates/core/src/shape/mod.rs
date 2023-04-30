@@ -8,7 +8,7 @@ use crate::*;
 pub struct Shape {
   pub contours: Vec<Contour>,
 }
-// /*
+
 impl Shape {
   pub fn sample(&self, point: Point) -> [f32; 3] {
     let mut red_dist = f32::INFINITY;
@@ -34,28 +34,29 @@ impl Shape {
 
         if (spline.colour.unwrap() & Red == Red)
           && (dist.abs() < red_dist.abs()
-            || (dist == red_dist && orth > red_orth))
+            || (dist.abs() == red_dist.abs() && orth.abs() >= red_orth))
         {
           red_dist = dist;
-          red_orth = orth;
+          red_orth = orth.abs();
           red_spline = Some(spline);
         }
 
         if (spline.colour.unwrap() & Green == Green)
           && (dist.abs() < green_dist.abs()
-            || (dist == green_dist && orth > green_orth))
+            || (dist.abs() == green_dist.abs() && orth.abs() >= green_orth))
         {
           green_dist = dist;
-          green_orth = orth;
+          green_orth = orth.abs();
+          // }
           green_spline = Some(spline);
         }
 
         if (spline.colour.unwrap() & Blue == Blue)
           && (dist.abs() < blue_dist.abs()
-            || (dist == blue_dist && orth > blue_orth))
+            || (dist.abs() == blue_dist.abs() && orth.abs() >= blue_orth))
         {
           blue_dist = dist;
-          blue_orth = orth;
+          blue_orth = orth.abs();
           blue_spline = Some(spline);
         }
       }
@@ -72,10 +73,15 @@ impl Shape {
     }
 
     [
+      // red_dist,
+      // green_dist,
+      // blue_dist,
+      // red_orth * 10.0,
+      // green_orth * 10.0,
+      // blue_orth * 10.0,
       red_pseudo_dist,
       green_pseudo_dist,
       blue_pseudo_dist,
     ]
   }
 }
-// */

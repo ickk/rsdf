@@ -12,33 +12,40 @@ fn gen() {
   let Some(filename) = env::args().nth(1) else { panic!("No output filename given") };
   eprintln!("{filename:?}");
 
-  let contour = Contour {
-    points: vec![
-      // (20., 20.).into(),
-      // (30., 30.).into(),
-      // (50., 50.).into(),
-      // (60., 30.).into(),
-      // (70., 10.).into(),
-      // (20., 20.).into(),
+  let points: Vec<Point> = vec![
+    // (20., 20.).into(),
+    // (30., 30.).into(),
+    // (50., 50.).into(),
+    // (60., 30.).into(),
+    // (70., 10.).into(),
+    // (20., 20.).into(),
+    (70., 10.).into(),
+    (60., 30.).into(),
+    (50., 50.).into(),
+    (30., 30.).into(),
+    (20., 20.).into(),
+    (48., 20.).into(),
+    (38., 5.).into(),
+    (70., 10.).into(),
+  ];
 
-      (70., 10.).into(),
-      (60., 30.).into(),
-      (50., 50.).into(),
-      (30., 30.).into(),
-      (20., 20.).into(),
-      (50., 12.).into(),
-      (70., 10.).into(),
-    ],
+  let points = points.iter().map(|&v| v + (5., 20.).into()).collect();
+
+  let contour = Contour {
+    points,
     segments: vec![
       (SegmentKind::Line, 0),
       (SegmentKind::QuadBezier, 1),
+      // (SegmentKind::Line, 1),
+      // (SegmentKind::Line, 2),
       (SegmentKind::Line, 3),
       (SegmentKind::Line, 4),
       (SegmentKind::Line, 5),
+      (SegmentKind::Line, 6),
     ],
     // splines: vec![(3, 0), (1, 3), (1, 4)],
-    splines: vec![(3, 0), (1, 3)],
-    spline_colours: Some(vec![Magenta, Yellow, Cyan]),
+    splines: vec![(3, 0), (1, 3), (1, 4), (1, 5)],
+    spline_colours: Some(vec![Magenta, Yellow, Cyan, Yellow]),
   };
 
   let shape = Shape {
