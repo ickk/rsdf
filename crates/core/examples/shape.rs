@@ -14,35 +14,30 @@ fn gen() {
 
   let points: Vec<Point> = vec![
     (40., 30.).into(),
-    (30., 21.).into(),
-    (20., 30.).into(),
+    (30., 30.).into(),
+    (19., 40.).into(),
     (10., 20.).into(),
+    (25., 20.).into(),
     (30., 10.).into(),
     (40., 30.).into(),
   ];
 
-  // let points = points
-  //   .iter()
-  //   .map(|&v| Point {
-  //     inner: (v.as_vector() + Vector::from((10., 40.))),
-  //   })
-  //   .collect();
-
   let contour = Contour {
     points,
     segments: vec![
-      (SegmentKind::CubicBezier, 0), // 0
-      (SegmentKind::QuadBezier, 3),  // 1
+      (SegmentKind::CubicBezier, 0),
+      (SegmentKind::Line, 3),
+      (SegmentKind::QuadBezier, 4),
     ],
-    splines: vec![(1, 0), (1, 1)],
-    spline_colours: Some(vec![Magenta, Yellow]),
+    splines: vec![(1, 0), (1, 1), (1, 2)],
+    spline_colours: Some(vec![Magenta, Yellow, Cyan]),
   };
 
   let shape = Shape {
     contours: vec![contour],
   };
 
-  let mut image = Image::new(&filename, [100, 100]);
+  let mut image = Image::new(&filename, [50, 50]);
   let start_time = std::time::Instant::now();
   for y in 0..image.height {
     for x in 0..image.width {
