@@ -49,7 +49,6 @@ impl Shape {
         {
           green_dist = dist;
           green_orth = orth.abs();
-          // }
           green_spline = Some(spline);
         }
 

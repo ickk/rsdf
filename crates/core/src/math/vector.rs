@@ -47,6 +47,12 @@ impl Vector {
   pub fn area(self, b: Vector) -> f32 {
     (self.x * b.y - self.y * b.x).abs()
   }
+
+  /// Create a `Point` whose location is this vector away from the origin.
+  #[inline]
+  pub fn as_point(self) -> Point {
+    Point { inner: self }
+  }
 }
 
 impl From<(f32, f32)> for Vector {
