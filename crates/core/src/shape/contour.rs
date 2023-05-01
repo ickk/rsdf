@@ -3,14 +3,6 @@ use crate::*;
 // SegmentKind implicitly gives the length
 pub type SegmentIndex = (SegmentKind, /* points index */ usize);
 
-/// A reference to a segment in the Contour
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Segment<'contour> {
-  Line(&'contour [Point]),
-  QuadBezier(&'contour [Point]),
-  CubicBezier(&'contour [Point]),
-}
-
 type SplineIndex = (/* length */ usize, /* segments index */ usize);
 
 /// A reference to a spline in the Contour
@@ -85,18 +77,13 @@ impl<'contour> Contour {
     spline: Spline,
     point: Point,
   ) -> (/* dist */ f32, /* orth */ f32) {
-    use Segment::*;
     let mut selected_dist = f32::INFINITY;
     // initial values don't matter since the first distance will always be set
     let mut selected_segment = None;
-    let mut selected_t = 0.0;
+    let mut selected_t = 0f32;
 
     for segment in self.segments(spline) {
-      let (dist, t) = match segment {
-        Line(ps) => line_distance(ps, point),
-        QuadBezier(ps) => quad_bezier_distance(ps, point),
-        CubicBezier(ps) => cubic_bezier_distance(ps, point),
-      };
+      let (dist, t) = segment.distance(point);
       if dist < selected_dist {
         selected_dist = dist;
         selected_segment = Some(segment);
@@ -106,23 +93,13 @@ impl<'contour> Contour {
 
     // unwrap is okay since the selected segment will be always be set assuming
     // any dist < infinity are found above.
-    let orthogonality = match selected_segment.unwrap() {
-      Line(ps) => sample_line_direction(ps, selected_t.clamp(0., 1.))
-        .signed_area(
-          (point - sample_line(ps, selected_t.clamp(0., 1.))).norm(),
-        ),
-      QuadBezier(ps) => {
-        sample_quad_bezier_direction(ps, selected_t.clamp(0., 1.)).signed_area(
-          (point - sample_quad_bezier(ps, selected_t.clamp(0., 1.))).norm(),
-        )
-      },
-      CubicBezier(ps) => {
-        sample_cubic_bezier_direction(ps, selected_t.clamp(0., 1.))
-          .signed_area(
-            (point - sample_cubic_bezier(ps, selected_t.clamp(0., 1.))).norm(),
-          )
-      },
-    };
+    let selected_segment = selected_segment.unwrap();
+    let orthogonality = selected_segment
+      .sample_derivative(selected_t.clamp(0., 1.))
+      .norm()
+      .signed_area(
+        (point - selected_segment.sample(selected_t.clamp(0., 1.))).norm(),
+      );
 
     // kind of redundant
     let signed_dist = selected_dist.copysign(orthogonality);
@@ -132,7 +109,6 @@ impl<'contour> Contour {
 
   /// Calculate the signed pseudo distance to the spline
   pub fn spline_pseudo_distance(&self, spline: Spline, point: Point) -> f32 {
-    use Segment::*;
     let mut selected_dist = f32::INFINITY;
     let mut selected_segment = None;
     let mut selected_t = 0.0;
@@ -141,13 +117,7 @@ impl<'contour> Contour {
       for (i, segment) in self.segments(spline).enumerate() {
         // start of the spline
         if i == 0 {
-          let (dist, t) = match segment {
-            Line(ps) => line_pseudo_distance(ps, point, ..=1f32),
-            QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, ..=1f32),
-            CubicBezier(ps) => {
-              cubic_bezier_pseudo_distance(ps, point, ..=1f32)
-            },
-          };
+          let (dist, t) = segment.pseudo_distance(point, ..=1f32);
           if dist < selected_dist {
             selected_dist = dist;
             selected_segment = Some(segment);
@@ -156,11 +126,7 @@ impl<'contour> Contour {
         }
         // end of the spline
         else if i == spline.len() - 1 {
-          let (dist, t) = match segment {
-            Line(ps) => line_pseudo_distance(ps, point, 0f32..),
-            QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, 0f32..),
-            CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, 0f32..),
-          };
+          let (dist, t) = segment.pseudo_distance(point, 0f32..);
           if dist < selected_dist {
             selected_dist = dist;
             selected_segment = Some(segment);
@@ -168,11 +134,7 @@ impl<'contour> Contour {
           }
         }
         // middle of the spline
-        let (dist, t) = match segment {
-          Line(ps) => line_distance(ps, point),
-          QuadBezier(ps) => quad_bezier_distance(ps, point),
-          CubicBezier(ps) => cubic_bezier_distance(ps, point),
-        };
+        let (dist, t) = segment.distance(point);
         if dist < selected_dist {
           selected_dist = dist;
           selected_segment = Some(segment);
@@ -182,11 +144,7 @@ impl<'contour> Contour {
     } else {
       // There's only one segment in this spline
       let segment = self.segments(spline).next().unwrap();
-      let (dist, t) = match segment {
-        Line(ps) => line_pseudo_distance(ps, point, ..),
-        QuadBezier(ps) => quad_bezier_pseudo_distance(ps, point, ..),
-        CubicBezier(ps) => cubic_bezier_pseudo_distance(ps, point, ..),
-      };
+      let (dist, t) = segment.pseudo_distance(point, ..);
       if dist < selected_dist {
         selected_dist = dist;
         selected_segment = Some(segment);
@@ -194,14 +152,10 @@ impl<'contour> Contour {
       }
     }
 
-    let sign = match selected_segment.unwrap() {
-      Line(ps) => sample_line_direction(ps, selected_t)
-        .signed_area(point - sample_line(ps, selected_t)),
-      QuadBezier(ps) => sample_quad_bezier_direction(ps, selected_t)
-        .signed_area(point - sample_quad_bezier(ps, selected_t)),
-      CubicBezier(ps) => sample_cubic_bezier_direction(ps, selected_t)
-        .signed_area(point - sample_cubic_bezier(ps, selected_t)),
-    };
+    let selected_segment = selected_segment.unwrap();
+    let sign = selected_segment
+      .sample_derivative(selected_t)
+      .signed_area(point - selected_segment.sample(selected_t));
 
     selected_dist.copysign(sign)
   }
