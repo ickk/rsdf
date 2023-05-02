@@ -8,6 +8,10 @@ pub struct Point {
 }
 
 impl Point {
+  pub const ZERO: Point = Point {
+    inner: Vector::ZERO,
+  };
+
   #[inline]
   pub const fn new(x: f32, y: f32) -> Self {
     Point {

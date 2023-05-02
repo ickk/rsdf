@@ -112,43 +112,77 @@ impl<'contour> Contour {
     let mut selected_dist = f32::INFINITY;
     let mut selected_segment = None;
     let mut selected_t = 0.0;
+    // A place to store the points of extension lines if we need to construct
+    // them.
+    let mut extension_buf = [Point::ZERO; 2];
 
-    if spline.len() > 1 {
+    // If there's only one segment in this spline
+    if spline.len() == 1 {
+      let segment = self.segments(spline).next().unwrap();
+      let (mut dist, mut t) = segment.pseudo_distance(point, ..);
+      let mut segment_extended = false;
+      if t < 0f32 {
+        (dist, t) =
+          check_start_extension(segment, point, &mut extension_buf);
+        segment_extended = true;
+      } else if t > 1f32 {
+        (dist, t) =
+          check_end_extension(segment, point, &mut extension_buf);
+        segment_extended = true;
+      }
+      if dist < selected_dist {
+        selected_dist = dist;
+        selected_t = t;
+        if segment_extended {
+          selected_segment = Some(Segment::Line(&extension_buf));
+        } else {
+          selected_segment = Some(segment);
+        }
+      }
+    }
+    // Otherwise we've got a multi-segment spline
+    else {
+      let mut extended = false;
+
       for (i, segment) in self.segments(spline).enumerate() {
+        let (mut dist, mut t);
+        let mut segment_extended = false;
         // start of the spline
         if i == 0 {
-          let (dist, t) = segment.pseudo_distance(point, ..=1f32);
-          if dist < selected_dist {
-            selected_dist = dist;
-            selected_segment = Some(segment);
-            selected_t = t;
+          (dist, t) = segment.pseudo_distance(point, ..=1f32);
+          if t < 0f32 {
+            // this is really ugly.
+            (dist, t) =
+              check_start_extension(segment, point, &mut extension_buf);
+            segment_extended = true;
           }
         }
         // end of the spline
         else if i == spline.len() - 1 {
-          let (dist, t) = segment.pseudo_distance(point, 0f32..);
-          if dist < selected_dist {
-            selected_dist = dist;
-            selected_segment = Some(segment);
-            selected_t = t;
+          (dist, t) = segment.pseudo_distance(point, 0f32..);
+          if t > 1f32 {
+            (dist, t) =
+              check_end_extension(segment, point, &mut extension_buf);
+            segment_extended = true;
           }
         }
         // middle of the spline
-        let (dist, t) = segment.distance(point);
+        else {
+          (dist, t) = segment.distance(point);
+        }
         if dist < selected_dist {
           selected_dist = dist;
           selected_segment = Some(segment);
           selected_t = t;
+          if segment_extended {
+            extended = true;
+          } else {
+            extended = false;
+          }
         }
       }
-    } else {
-      // There's only one segment in this spline
-      let segment = self.segments(spline).next().unwrap();
-      let (dist, t) = segment.pseudo_distance(point, ..);
-      if dist < selected_dist {
-        selected_dist = dist;
-        selected_segment = Some(segment);
-        selected_t = t;
+      if extended {
+        selected_segment = Some(Segment::Line(&extension_buf));
       }
     }
 
@@ -159,6 +193,34 @@ impl<'contour> Contour {
 
     selected_dist.copysign(sign)
   }
+}
+
+/// A helper to generate & evaluate the straight line extending from the start
+/// of a curve.
+#[inline]
+fn check_start_extension<'segment>(
+  segment: Segment<'segment>,
+  point: Point,
+  extension_buf: &mut [Point; 2],
+) -> (/* dist */ f32, /* t */ f32) {
+  let p0 = segment.sample(0.);
+  let p1 = p0 + segment.sample_derivative(0.);
+  *extension_buf = [p0, p1];
+  Line::pseudo_distance(extension_buf, point, ..)
+}
+
+/// A helper to generate & evaluate the straight line extending from the end of
+/// a curve.
+#[inline]
+fn check_end_extension<'segment>(
+  segment: Segment<'segment>,
+  point: Point,
+  extension_buf: &mut [Point; 2],
+) -> (/* dist */ f32, /* t */ f32) {
+  let p0 = segment.sample(1.);
+  let p1 = p0 + segment.sample_derivative(1.);
+  *extension_buf = [p0, p1];
+  Line::pseudo_distance(extension_buf, point, ..)
 }
 
 #[cfg(any(test, doctest))]
