@@ -57,18 +57,18 @@ impl Shape {
       }
     }
 
-    let red_pseudo_dist = red_spline.map_or(-f32::INFINITY, |spline| {
-      red_contour.map_or(-f32::INFINITY, |contour| {
+    let red_pseudo_dist = red_spline.map_or(f32::NEG_INFINITY, |spline| {
+      red_contour.map_or(f32::NEG_INFINITY, |contour| {
         contour.spline_pseudo_distance(spline, point)
       })
     });
-    let green_pseudo_dist = green_spline.map_or(-f32::INFINITY, |spline| {
-      green_contour.map_or(-f32::INFINITY, |contour| {
+    let green_pseudo_dist = green_spline.map_or(f32::NEG_INFINITY, |spline| {
+      green_contour.map_or(f32::NEG_INFINITY, |contour| {
         contour.spline_pseudo_distance(spline, point)
       })
     });
-    let blue_pseudo_dist = blue_spline.map_or(-f32::INFINITY, |spline| {
-      blue_contour.map_or(-f32::INFINITY, |contour| {
+    let blue_pseudo_dist = blue_spline.map_or(f32::NEG_INFINITY, |spline| {
+      blue_contour.map_or(f32::NEG_INFINITY, |contour| {
         contour.spline_pseudo_distance(spline, point)
       })
     });
