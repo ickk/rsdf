@@ -7,7 +7,7 @@ pub use primitives::*;
 
 use crate::*;
 
-const COMPARISON_ULPS: i32 = 10000;
+const EPSILON: f32 = 0.0001;
 
 pub struct Shape {
   pub contours: Vec<Contour>,
@@ -23,52 +23,57 @@ impl Shape {
     let mut green_dist = (f32::INFINITY, -f32::INFINITY);
     let mut blue_dist = (f32::INFINITY, -f32::INFINITY);
 
-    let mut red_pseudo_dist = -f32::INFINITY;
-    let mut green_pseudo_dist = -f32::INFINITY;
-    let mut blue_pseudo_dist = -f32::INFINITY;
+    let mut red_contour = None;
+    let mut green_contour = None;
+    let mut blue_contour = None;
 
-    // for contour in self.contours.iter() {
-    if let Some(contour) = self.contours.first() {
+    for contour in self.contours.iter() {
       for spline in contour.splines() {
         let dist = contour.spline_distance(spline, point);
 
         if (spline.colour & Red == Red) && closer(dist, red_dist) {
           red_dist = dist;
           red_spline = Some(spline);
+          red_contour = Some(contour);
         }
 
         if (spline.colour & Green == Green) && closer(dist, green_dist) {
           green_dist = dist;
           green_spline = Some(spline);
+          green_contour = Some(contour);
         }
 
         if (spline.colour & Blue == Blue) && closer(dist, blue_dist) {
           blue_dist = dist;
           blue_spline = Some(spline);
+          blue_contour = Some(contour);
         }
       }
-
-      red_pseudo_dist = red_spline.map_or(-f32::INFINITY, |spline| {
-        contour.spline_pseudo_distance(spline, point)
-      });
-      green_pseudo_dist = green_spline.map_or(-f32::INFINITY, |spline| {
-        contour.spline_pseudo_distance(spline, point)
-      });
-      blue_pseudo_dist = blue_spline.map_or(-f32::INFINITY, |spline| {
-        contour.spline_pseudo_distance(spline, point)
-      });
     }
 
+    let red_pseudo_dist = red_spline.map_or(-f32::INFINITY, |spline| {
+      red_contour.map_or(-f32::INFINITY, |contour| {
+        contour.spline_pseudo_distance(spline, point)
+      })
+    });
+    let green_pseudo_dist = green_spline.map_or(-f32::INFINITY, |spline| {
+      green_contour.map_or(-f32::INFINITY, |contour| {
+        contour.spline_pseudo_distance(spline, point)
+      })
+    });
+    let blue_pseudo_dist = blue_spline.map_or(-f32::INFINITY, |spline| {
+      blue_contour.map_or(-f32::INFINITY, |contour| {
+        contour.spline_pseudo_distance(spline, point)
+      })
+    });
+
+    const _SCALE: f32 = 3.;
     [
-      // red_dist, green_dist,
-      // blue_dist,
-      // red_orth * 10.0,
-      // green_orth * 10.0,
-      // blue_orth * 10.0,
-      red_pseudo_dist,
-      green_pseudo_dist,
-      blue_pseudo_dist,
+      // red_dist.0, green_dist.0, blue_dist.0,
+      // red_dist.1 * _SCALE, green_dist.1 * _SCALE, blue_dist.1 * _SCALE,
+      red_pseudo_dist, green_pseudo_dist, blue_pseudo_dist,
     ]
+
   }
 }
 
@@ -77,12 +82,12 @@ fn closer(
   (distance_a, orthogonality_a): (f32, f32),
   (distance_b, orthogonality_b): (f32, f32),
 ) -> bool {
-  distance_a.abs() < distance_b.abs()
+  distance_b.abs() - distance_a.abs() > EPSILON
     || (orthogonality_a.abs() > orthogonality_b.abs()
       && float_cmp::approx_eq!(
         f32,
         distance_a.abs(),
         distance_b.abs(),
-        ulps = COMPARISON_ULPS
+        epsilon = EPSILON
       ))
 }

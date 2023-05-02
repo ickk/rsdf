@@ -149,7 +149,6 @@ impl<'contour> Contour {
         if i == 0 {
           (dist, t) = segment.pseudo_distance(point, ..=1f32);
           if t < 0f32 {
-            // this is really ugly.
             (dist, t) =
               check_start_extension(segment, point, &mut extension_buf);
             segment_extended = true;
