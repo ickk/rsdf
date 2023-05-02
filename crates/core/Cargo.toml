@@ -10,6 +10,4 @@ aberth = "0.0.3"
 arrayvec = "0.7"
 num-derive = "0.3"
 num-traits = "0.2"
-
-[dev-dependencies]
 float-cmp = "0.9"

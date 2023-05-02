@@ -13,13 +13,13 @@ fn gen() {
   eprintln!("{filename:?}");
 
   let points: Vec<Point> = vec![
-    (40., 30.).into(),
-    (30., 30.).into(),
-    (19., 40.).into(),
-    (10., 20.).into(),
-    (25., 20.).into(),
-    (30., 10.).into(),
-    (40., 30.).into(),
+    (33., 27.).into(),
+    (27., 27.).into(),
+    (17.1, 36.).into(),
+    (9., 20.).into(),
+    (22.5, 20.).into(),
+    (27., 9.).into(),
+    (33., 27.).into(),
   ];
 
   let contour = Contour {

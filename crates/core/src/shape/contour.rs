@@ -122,12 +122,10 @@ impl<'contour> Contour {
       let (mut dist, mut t) = segment.pseudo_distance(point, ..);
       let mut segment_extended = false;
       if t < 0f32 {
-        (dist, t) =
-          check_start_extension(segment, point, &mut extension_buf);
+        (dist, t) = check_start_extension(segment, point, &mut extension_buf);
         segment_extended = true;
       } else if t > 1f32 {
-        (dist, t) =
-          check_end_extension(segment, point, &mut extension_buf);
+        (dist, t) = check_end_extension(segment, point, &mut extension_buf);
         segment_extended = true;
       }
       if dist < selected_dist {
@@ -198,8 +196,8 @@ impl<'contour> Contour {
 /// A helper to generate & evaluate the straight line extending from the start
 /// of a curve.
 #[inline]
-fn check_start_extension<'segment>(
-  segment: Segment<'segment>,
+fn check_start_extension(
+  segment: Segment,
   point: Point,
   extension_buf: &mut [Point; 2],
 ) -> (/* dist */ f32, /* t */ f32) {
@@ -212,8 +210,8 @@ fn check_start_extension<'segment>(
 /// A helper to generate & evaluate the straight line extending from the end of
 /// a curve.
 #[inline]
-fn check_end_extension<'segment>(
-  segment: Segment<'segment>,
+fn check_end_extension(
+  segment: Segment,
   point: Point,
   extension_buf: &mut [Point; 2],
 ) -> (/* dist */ f32, /* t */ f32) {

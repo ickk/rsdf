@@ -7,23 +7,21 @@ pub use primitives::*;
 
 use crate::*;
 
+const COMPARISON_ULPS: i32 = 10000;
+
 pub struct Shape {
   pub contours: Vec<Contour>,
 }
 
 impl Shape {
   pub fn sample(&self, point: Point) -> [f32; 3] {
-    let mut red_dist = f32::INFINITY;
-    let mut red_orth = 0.;
     let mut red_spline = None;
-
-    let mut green_dist = f32::INFINITY;
-    let mut green_orth = 0.;
     let mut green_spline = None;
-
-    let mut blue_dist = f32::INFINITY;
-    let mut blue_orth = 0.;
     let mut blue_spline = None;
+
+    let mut red_dist = (f32::INFINITY, -f32::INFINITY);
+    let mut green_dist = (f32::INFINITY, -f32::INFINITY);
+    let mut blue_dist = (f32::INFINITY, -f32::INFINITY);
 
     let mut red_pseudo_dist = -f32::INFINITY;
     let mut green_pseudo_dist = -f32::INFINITY;
@@ -32,32 +30,20 @@ impl Shape {
     // for contour in self.contours.iter() {
     if let Some(contour) = self.contours.first() {
       for spline in contour.splines() {
-        let (dist, orth) = contour.spline_distance(spline, point);
+        let dist = contour.spline_distance(spline, point);
 
-        if (spline.colour & Red == Red)
-          && (dist.abs() < red_dist.abs()
-            || (dist.abs() == red_dist.abs() && orth.abs() >= red_orth))
-        {
+        if (spline.colour & Red == Red) && closer(dist, red_dist) {
           red_dist = dist;
-          red_orth = orth.abs();
           red_spline = Some(spline);
         }
 
-        if (spline.colour & Green == Green)
-          && (dist.abs() < green_dist.abs()
-            || (dist.abs() == green_dist.abs() && orth.abs() >= green_orth))
-        {
+        if (spline.colour & Green == Green) && closer(dist, green_dist) {
           green_dist = dist;
-          green_orth = orth.abs();
           green_spline = Some(spline);
         }
 
-        if (spline.colour & Blue == Blue)
-          && (dist.abs() < blue_dist.abs()
-            || (dist.abs() == blue_dist.abs() && orth.abs() >= blue_orth))
-        {
+        if (spline.colour & Blue == Blue) && closer(dist, blue_dist) {
           blue_dist = dist;
-          blue_orth = orth.abs();
           blue_spline = Some(spline);
         }
       }
@@ -74,8 +60,7 @@ impl Shape {
     }
 
     [
-      // red_dist,
-      // green_dist,
+      // red_dist, green_dist,
       // blue_dist,
       // red_orth * 10.0,
       // green_orth * 10.0,
@@ -85,4 +70,19 @@ impl Shape {
       blue_pseudo_dist,
     ]
   }
+}
+
+// Comparison function for pairs of distances
+fn closer(
+  (distance_a, orthogonality_a): (f32, f32),
+  (distance_b, orthogonality_b): (f32, f32),
+) -> bool {
+  distance_a.abs() < distance_b.abs()
+    || (orthogonality_a.abs() > orthogonality_b.abs()
+      && float_cmp::approx_eq!(
+        f32,
+        distance_a.abs(),
+        distance_b.abs(),
+        ulps = COMPARISON_ULPS
+      ))
 }
