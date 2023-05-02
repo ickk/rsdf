@@ -1,9 +1,10 @@
 use arrayvec::ArrayVec;
 use std::ops::RangeBounds;
 
+/// The threshold used to decide when a root has been found
 pub const EPSILON: f32 = 0.0001;
 
-/// find real roots in the given range
+/// Find real roots in the given range
 pub fn roots_in_range<const TERMS: usize, R: RangeBounds<f32>>(
   polynomial: &[f32; TERMS],
   range: R,

@@ -2,16 +2,19 @@ use std::ops::Sub;
 
 use super::*;
 
+/// A point in 2D space
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Point {
   pub inner: Vector,
 }
 
 impl Point {
+  /// The origin
   pub const ZERO: Point = Point {
     inner: Vector::ZERO,
   };
 
+  /// Create a `Point` from a pair of `x` and `y` coordinates
   #[inline]
   pub const fn new(x: f32, y: f32) -> Self {
     Point {
@@ -19,6 +22,7 @@ impl Point {
     }
   }
 
+  /// Return a `Vector` containing the same components as the point
   #[inline]
   pub fn as_vector(self) -> Vector {
     self.inner

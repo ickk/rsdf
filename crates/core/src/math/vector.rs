@@ -1,5 +1,6 @@
 use super::*;
 
+/// A vector in 2D space
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Vector {
   pub x: f32,
@@ -7,48 +8,56 @@ pub struct Vector {
 }
 
 impl Vector {
+  /// The zero vector
   pub const ZERO: Vector = Vector { x: 0., y: 0. };
 
+  /// The length of the vector
   #[inline]
   pub fn abs(self) -> f32 {
     (self.x * self.x + self.y * self.y).sqrt()
   }
 
+  /// Vector of unit length in the same direction
+  ///
+  /// note: fails for the zero vector.
   #[inline]
   pub fn norm(self) -> Self {
     self / self.abs()
   }
 
+  /// Create a vector pointing in the direction of the `end` from `start`
   #[inline]
   pub fn from_points(start: Point, end: Point) -> Self {
     end.inner - start.inner
   }
 
-  /// The dot product of a pair of vectors.
+  /// The dot product of a pair of vectors
   #[inline]
   pub fn dot(self, rhs: Vector) -> f32 {
     self.x * rhs.x + self.y * rhs.y
   }
 
-  /// Gives the signed area of the parallelogram formed by the pair of vectors.
+  /// Gives the signed area of the parallelogram formed by the pair of vectors
   ///
   /// If the `b` is counter-clockwise to `self` then the result is
   /// positive, otherwise the result is negative. The area is zero when the
   /// vectors are parallel.
   ///
-  /// This is the same as the determinant of the matrix formed by the pair of vectors.
+  /// This is the same as the determinant of the matrix formed by the pair of
+  /// vectors.
   #[inline]
   pub fn signed_area(self, b: Vector) -> f32 {
     self.x * b.y - self.y * b.x
   }
 
-  /// Gives the area of the parallelogram formed by the pair of vectors.
+  /// Gives the area of the parallelogram formed by the pair of vectors
   #[inline]
   pub fn area(self, b: Vector) -> f32 {
     (self.x * b.y - self.y * b.x).abs()
   }
 
-  /// Create a `Point` whose location is this vector away from the origin.
+  /// Create a `Point` whose location is the same as the components of the
+  /// vector
   #[inline]
   pub fn as_point(self) -> Point {
     Point { inner: self }

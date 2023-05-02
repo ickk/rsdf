@@ -6,11 +6,13 @@ Currently the core is capable of decomposing shapes made of lines, quadratic &
 cubic bezier curves, however there is still work to do to make it into a real
 tool.
 
-![raster signed distance field output example](./shape.png)
+Example multichannel raster-SDF generated using this library:
+![raster-SDF example](./shape.png)
 
-![image rendered using the rsdf](./shape_render.png)
+A 900x900 pixel image rendered using the above 30x30 pixel SDF image:
+![image rendered from raster-SDF](./shape_render.png)
 
 Future work:
-- implement additional primitives (arcs, b-splines, et c.)
-- implement front-end asset processors (svg, fonts)
-- try to parallelise the core with rustgpu
+- [ ] implement additional primitives (arcs, b-splines, et c.)
+- [ ] implement front-end asset processors (svg, fonts)
+- [ ] try to parallelise the core with rustgpu

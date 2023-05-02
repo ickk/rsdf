@@ -1,5 +1,6 @@
 use super::*;
 
+/// Line primitive
 pub struct Line;
 
 impl Primitive for Line {
@@ -16,19 +17,6 @@ impl Primitive for Line {
   }
 
   #[inline]
-  fn find_normals<R: RangeBounds<f32> + Clone>(
-    ps: &[Point],
-    point: Point,
-    range: R,
-  ) -> Option<f32> {
-    let v0 = point - ps[0];
-    let v1 = ps[1] - ps[0];
-
-    let t = v0.dot(v1) / v1.dot(v1);
-    Some(t).filter(|t| range.contains(t))
-  }
-
-  #[inline]
   fn pseudo_distance<R: RangeBounds<f32> + Clone>(
     ps: &[Point],
     point: Point,
@@ -41,6 +29,19 @@ impl Primitive for Line {
     let t = Line::find_normals(ps, point, ..).unwrap().clamp(start, end);
     let dist = (point - Line::sample(ps, t)).abs();
     (dist, t)
+  }
+
+  #[inline]
+  fn find_normals<R: RangeBounds<f32> + Clone>(
+    ps: &[Point],
+    point: Point,
+    range: R,
+  ) -> Option<f32> {
+    let v0 = point - ps[0];
+    let v1 = ps[1] - ps[0];
+
+    let t = v0.dot(v1) / v1.dot(v1);
+    Some(t).filter(|t| range.contains(t))
   }
 }
 

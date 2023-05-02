@@ -1,11 +1,15 @@
 use crate::*;
 
+/// The kind of a segment & an index into the points buffer where this segment
+/// starts
 // SegmentKind implicitly gives the length
 pub type SegmentIndex = (SegmentKind, /* points index */ usize);
 
-type SplineIndex = (/* length */ usize, /* segments index */ usize);
+/// The length of a spline (the number of segments it contains) and an index
+/// into the segment buffer where the spline starts
+pub type SplineIndex = (/* length */ usize, /* segments index */ usize);
 
-/// A reference to a spline in the Contour
+/// A reference to a spline in the [`Contour`]
 #[derive(Debug, Clone, Copy)]
 pub struct Spline<'contour> {
   pub segments: &'contour [SegmentIndex],
@@ -13,15 +17,16 @@ pub struct Spline<'contour> {
 }
 
 impl Spline<'_> {
+  /// The number of segments in this spline
   pub fn len(&self) -> usize {
     self.segments.len()
   }
 }
 
-// A Contour is a path describing a closed region of space.
-//
-// Sharp corners are assumed to be located at the boundary points of adjacent
-// splines.
+/// A Contour is a path describing a closed region of space.
+///
+/// Sharp corners are assumed to be located at the boundary points of adjacent
+/// splines.
 pub struct Contour {
   /// A buffer containing the points
   pub points: Vec<Point>,
@@ -30,14 +35,13 @@ pub struct Contour {
   /// A buffer containing references to the splines
   pub splines: Vec<SplineIndex>,
   /// A buffer containing the colours corresponding to the respective Spline.
-  ///
-  /// Might not be computed.
   pub spline_colours: Vec<Colour>,
   // TODO: add a flag for fully-smooth. Otherwise there's an ambiguity
   // between teardrop and fully-smooth contours.
 }
 
 impl<'contour> Contour {
+  /// Get a segment given a `SegmentIndex`
   #[inline]
   fn get_segment(&self, (kind, i): SegmentIndex) -> Segment {
     match kind {
@@ -47,6 +51,7 @@ impl<'contour> Contour {
     }
   }
 
+  /// Get the `Spline` at the given index
   #[inline]
   fn get_spline(&self, i: usize) -> Spline {
     let (length, index) = self.splines[i];
@@ -56,6 +61,7 @@ impl<'contour> Contour {
     }
   }
 
+  /// Get an iterator over the [`Segment`]s in a given [`Spline`]
   #[inline]
   pub fn segments(
     &'contour self,
@@ -67,11 +73,13 @@ impl<'contour> Contour {
       .map(|segment_index| self.get_segment(*segment_index))
   }
 
+  /// Get an iterator over the [`Spline`]s in this contour
   pub fn splines(&self) -> impl Iterator<Item = Spline> {
     (0..self.splines.len()).map(|i| self.get_spline(i))
   }
 
-  /// Calculate the signed distance to the spline
+  /// Calculate the signed distance and orthogonality of a [`Point`] from a
+  /// [`Spline`]
   pub fn spline_distance(
     &self,
     spline: Spline,
@@ -107,7 +115,7 @@ impl<'contour> Contour {
     (signed_dist, orthogonality.abs())
   }
 
-  /// Calculate the signed pseudo distance to the spline
+  /// Calculate the signed pseudo distance of a [`Point`] from a [`Spline`]
   pub fn spline_pseudo_distance(&self, spline: Spline, point: Point) -> f32 {
     let mut selected_dist = f32::INFINITY;
     let mut selected_segment = None;
@@ -192,8 +200,8 @@ impl<'contour> Contour {
   }
 }
 
-/// A helper to generate & evaluate the straight line extending from the start
-/// of a curve.
+/// Helper to generate & evaluate the straight line extending from the start
+/// of a curve
 #[inline]
 fn check_start_extension(
   segment: Segment,
@@ -206,8 +214,8 @@ fn check_start_extension(
   Line::pseudo_distance(extension_buf, point, ..)
 }
 
-/// A helper to generate & evaluate the straight line extending from the end of
-/// a curve.
+/// Helper to generate & evaluate the straight line extending from the end of
+/// a curve
 #[inline]
 fn check_end_extension(
   segment: Segment,

@@ -1,5 +1,6 @@
 use num_derive::FromPrimitive;
 
+/// Basic type supporting bitwise binary operations on colour channels
 #[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
 #[rustfmt::skip]
 pub enum Colour {

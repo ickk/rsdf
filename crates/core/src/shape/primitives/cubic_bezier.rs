@@ -1,5 +1,6 @@
 use super::*;
 
+/// Cubic bezier curve primitive
 pub struct CubicBezier;
 
 impl Primitive for CubicBezier {
@@ -22,29 +23,6 @@ impl Primitive for CubicBezier {
       + 6f32*t*(ps[2].as_vector() - 2f32*ps[1].as_vector() + ps[0].as_vector())
       + 3f32*t*t
         * (ps[3].as_vector() - 3f32*ps[2].as_vector() + 3f32*ps[1].as_vector() - ps[0].as_vector())
-  }
-
-  #[rustfmt::skip]
-  fn find_normals<R: RangeBounds<f32>>(
-    ps: &[Point],
-    point: Point,
-    range: R,
-  ) -> ArrayVec<f32, 6> {
-    let v0 = point - ps[0];
-    let v1 = ps[1] - ps[0];
-    let v2 = ps[2].as_vector() - 2f32*ps[1].as_vector() + ps[0].as_vector();
-    let v3 = ps[3].as_vector() - 3f32*ps[2].as_vector() + 3f32*ps[1].as_vector() - ps[0].as_vector();
-
-    let polynomial = [
-      -v1.dot(v0),
-      3f32*v1.dot(v1) - 2f32*v2.dot(v0),
-      9f32*v1.dot(v2) - v3.dot(v0),
-      4f32*v1.dot(v3) + 6f32*v2.dot(v2),
-      5f32*v2.dot(v3),
-      v3.dot(v3),
-    ];
-
-    roots_in_range(&polynomial, range)
   }
 
   #[inline]
@@ -83,6 +61,29 @@ impl Primitive for CubicBezier {
     }
 
     (selected_dist, selected_t)
+  }
+
+  #[rustfmt::skip]
+  fn find_normals<R: RangeBounds<f32>>(
+    ps: &[Point],
+    point: Point,
+    range: R,
+  ) -> ArrayVec<f32, 6> {
+    let v0 = point - ps[0];
+    let v1 = ps[1] - ps[0];
+    let v2 = ps[2].as_vector() - 2f32*ps[1].as_vector() + ps[0].as_vector();
+    let v3 = ps[3].as_vector() - 3f32*ps[2].as_vector() + 3f32*ps[1].as_vector() - ps[0].as_vector();
+
+    let polynomial = [
+      -v1.dot(v0),
+      3f32*v1.dot(v1) - 2f32*v2.dot(v0),
+      9f32*v1.dot(v2) - v3.dot(v0),
+      4f32*v1.dot(v3) + 6f32*v2.dot(v2),
+      5f32*v2.dot(v3),
+      v3.dot(v3),
+    ];
+
+    roots_in_range(&polynomial, range)
   }
 }
 

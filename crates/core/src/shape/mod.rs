@@ -1,27 +1,33 @@
 pub mod colour;
 pub mod contour;
+pub mod distance;
 pub mod primitives;
+
 pub use colour::{Colour, Colour::*};
 pub use contour::*;
+pub use distance::*;
 pub use primitives::*;
 
 use crate::*;
 
+/// threshold for float comparisons
 const EPSILON: f32 = 0.0001;
 
+/// A representation of a shape ready to be decomposed into a raster SDF
 pub struct Shape {
   pub contours: Vec<Contour>,
 }
 
 impl Shape {
+  /// Sample the shape at a point
   pub fn sample(&self, point: Point) -> [f32; 3] {
     let mut red_spline = None;
     let mut green_spline = None;
     let mut blue_spline = None;
 
-    let mut red_dist = (f32::INFINITY, -f32::INFINITY);
-    let mut green_dist = (f32::INFINITY, -f32::INFINITY);
-    let mut blue_dist = (f32::INFINITY, -f32::INFINITY);
+    let mut red_dist = (f32::INFINITY, f32::NEG_INFINITY);
+    let mut green_dist = (f32::INFINITY, f32::NEG_INFINITY);
+    let mut blue_dist = (f32::INFINITY, f32::NEG_INFINITY);
 
     let mut red_contour = None;
     let mut green_contour = None;
@@ -67,17 +73,19 @@ impl Shape {
       })
     });
 
+    // alternative outputs for testing
     const _SCALE: f32 = 3.;
     [
       // red_dist.0, green_dist.0, blue_dist.0,
       // red_dist.1 * _SCALE, green_dist.1 * _SCALE, blue_dist.1 * _SCALE,
-      red_pseudo_dist, green_pseudo_dist, blue_pseudo_dist,
+      red_pseudo_dist,
+      green_pseudo_dist,
+      blue_pseudo_dist,
     ]
-
   }
 }
 
-// Comparison function for pairs of distances
+/// Comparison function for pairs of distances
 fn closer(
   (distance_a, orthogonality_a): (f32, f32),
   (distance_b, orthogonality_b): (f32, f32),

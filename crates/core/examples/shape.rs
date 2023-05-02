@@ -13,13 +13,13 @@ fn gen() {
   eprintln!("{filename:?}");
 
   let points: Vec<Point> = vec![
-    (33., 27.).into(),
-    (27., 27.).into(),
-    (17.1, 36.).into(),
-    (9., 20.).into(),
-    (22.5, 20.).into(),
-    (27., 9.).into(),
-    (33., 27.).into(),
+    (27., 20.).into(),
+    (21., 20.).into(),
+    (11.1, 29.).into(),
+    (3., 13.).into(),
+    (19.5, 13.).into(),
+    (21., 2.).into(),
+    (27., 20.).into(),
   ];
 
   let contour = Contour {
@@ -33,11 +33,29 @@ fn gen() {
     spline_colours: vec![Magenta, Yellow, Cyan],
   };
 
-  let shape = Shape {
-    contours: vec![contour],
+  let points2: Vec<Point> = vec![
+    (13., 15.).into(),
+    (13., 20.).into(),
+    (19., 20.).into(),
+    (13., 15.).into(),
+  ];
+
+  let contour2 = Contour {
+    points: points2,
+    segments: vec![
+      (SegmentKind::Line, 0),
+      (SegmentKind::Line, 1),
+      (SegmentKind::Line, 2),
+    ],
+    splines: vec![(1, 0), (1, 1), (1, 2)],
+    spline_colours: vec![Magenta, Yellow, Cyan],
   };
 
-  let mut image = Image::new(&filename, [50, 50]);
+  let shape = Shape {
+    contours: vec![contour, contour2],
+  };
+
+  let mut image = Image::new(&filename, [30, 30]);
   let start_time = std::time::Instant::now();
   for y in 0..image.height {
     for x in 0..image.width {
@@ -76,7 +94,7 @@ fn view() {
   let sdf_height = info.height as usize;
 
   let mut image =
-    Image::new(&output_filename, [sdf_width * 10, sdf_height * 10]);
+    Image::new(&output_filename, [sdf_width * 30, sdf_height * 30]);
 
   for y in 0..image.height {
     for x in 0..image.width {
@@ -137,7 +155,7 @@ fn view() {
       }
       // add a red outline effect
       let mut r_output = output;
-      if value > 100 {
+      if value > 117 {
         r_output = 255;
       }
 

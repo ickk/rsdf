@@ -1,6 +1,7 @@
 pub mod cubic_bezier;
 pub mod line;
 pub mod quad_bezier;
+
 pub use cubic_bezier::*;
 pub use line::*;
 pub use quad_bezier::*;
@@ -10,10 +11,18 @@ use arrayvec::ArrayVec;
 use std::ops::{Bound, RangeBounds};
 
 /// The kind of a segment
+///
+/// A `Segment` is constructed from a [`SegmentIndex`], where the `SegmentIndex`
+/// contains ([`SegmentKind`], `&[`[`Point`]`]`).
 #[derive(Debug, Clone, Copy)]
 pub enum SegmentKind {
+  /// Line, consisting of 2 [`Point`] - starting, ending positions.
   Line,
+  /// Degree 2 bezier curve, consisting of 3 [`Point`] - starting, control,
+  /// ending positions.
   QuadBezier,
+  /// Degree 3 bezier curve, consisting of 4 [`Point`] - starting, control,
+  /// ending positions.
   CubicBezier,
 }
 
@@ -26,6 +35,7 @@ pub enum Segment<'contour> {
 }
 
 impl Segment<'_> {
+  /// Sample the segment to get its value at time `t`
   #[inline]
   pub fn sample(self, t: f32) -> Point {
     match self {
@@ -35,6 +45,7 @@ impl Segment<'_> {
     }
   }
 
+  /// Return a tangent to the segment at time `t`
   #[inline]
   pub fn sample_derivative(self, t: f32) -> Vector {
     match self {
@@ -44,10 +55,11 @@ impl Segment<'_> {
     }
   }
 
+  /// Get the pseudo-distance from a point to the primitive at time `t`, where
+  /// `t` is contained within the given `range`
   #[inline]
   pub fn pseudo_distance<R: RangeBounds<f32> + Clone>(
     self,
-
     point: Point,
     range: R,
   ) -> (/* dist */ f32, /* t */ f32) {
@@ -60,6 +72,7 @@ impl Segment<'_> {
     }
   }
 
+  /// Get the distance from a point to the segment at time `t`
   #[inline]
   pub fn distance(self, point: Point) -> (/* dist */ f32, /* t */ f32) {
     match self {
@@ -70,19 +83,19 @@ impl Segment<'_> {
   }
 }
 
+/// Helps turn a `RangeBounds<f32>` into a pair of `f32`s.
+#[rustfmt::skip]
 #[inline]
 pub fn range_to_values<R: RangeBounds<f32> + Clone>(
   range: R,
 ) -> (/* start */ f32, /* end */ f32) {
   use Bound::*;
   match (range.start_bound(), range.end_bound()) {
-    (Unbounded, Unbounded) => (-f32::INFINITY, f32::INFINITY),
-    (Unbounded, Included(&end)) | (Unbounded, Excluded(&end)) => {
-      (-f32::INFINITY, end)
-    },
-    (Included(&start), Unbounded) | (Excluded(&start), Unbounded) => {
-      (start, f32::INFINITY)
-    },
+    (Unbounded, Unbounded) => (f32::NEG_INFINITY, f32::INFINITY),
+    (Unbounded, Included(&end))
+    | (Unbounded, Excluded(&end)) => (f32::NEG_INFINITY, end),
+    (Included(&start), Unbounded)
+    | (Excluded(&start), Unbounded) => (start, f32::INFINITY),
     (Included(&start), Included(&end))
     | (Included(&start), Excluded(&end))
     | (Excluded(&start), Excluded(&end))
@@ -100,14 +113,6 @@ pub trait Primitive {
   /// Return a tangent to the primitve at time `t`
   fn sample_derivative(ps: &[Point], t: f32) -> Vector;
 
-  /// Find when normals of the primitive intersect the given point, where the
-  /// times returned fall within the given `range`
-  fn find_normals<R: RangeBounds<f32> + Clone>(
-    ps: &[Point],
-    point: Point,
-    range: R,
-  ) -> Self::Ts;
-
   /// Get the pseudo-distance from a point to the primitive at time `t`, where
   /// `t` is contained within the given `range`
   fn pseudo_distance<R: RangeBounds<f32> + Clone>(
@@ -115,6 +120,14 @@ pub trait Primitive {
     point: Point,
     range: R,
   ) -> (/* dist */ f32, /* t */ f32);
+
+  /// Find when normals of the primitive intersect the given point, where the
+  /// times returned fall within the given `range`
+  fn find_normals<R: RangeBounds<f32> + Clone>(
+    ps: &[Point],
+    point: Point,
+    range: R,
+  ) -> Self::Ts;
 
   /// Get the distance from a point to the primitive at time `t`
   #[inline]

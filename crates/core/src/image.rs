@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::BufWriter;
 
+/// Wrapper around a PNG to make setting individual pixels easy
 pub struct Image<'a> {
   encoder: png::Encoder<'a, BufWriter<File>>,
   data: Vec<u8>,
@@ -9,6 +10,7 @@ pub struct Image<'a> {
 }
 
 impl Image<'_> {
+  /// Create a new Image, given a path and dimensions
   pub fn new(path: &str, size: [usize; 2]) -> Self {
     let file = File::create(path).unwrap();
     let buf_writer = BufWriter::new(file);
@@ -29,6 +31,7 @@ impl Image<'_> {
     }
   }
 
+  /// Set the pixel at the coordinates to the given value
   #[inline]
   pub fn set_pixel(&mut self, coords: [usize; 2], val: [u8; 3]) {
     debug_assert!(
@@ -41,6 +44,7 @@ impl Image<'_> {
     self.data[location + 2] = val[2];
   }
 
+  /// Flush the contents of the image to disk
   pub fn flush(self) {
     let mut writer = self.encoder.write_header().unwrap();
     writer.write_image_data(&self.data).unwrap();
