@@ -19,7 +19,22 @@ pub struct Shape {
 }
 
 impl Shape {
-  /// Sample the shape at a point
+  /// Sample the signed distance of the shape at the given [`Point`]
+  pub fn sample_single_channel(&self, point: Point) -> f32 {
+    let mut selected_dist = (f32::INFINITY, f32::NEG_INFINITY);
+    for contour in self.contours.iter() {
+      for spline in contour.splines() {
+        let dist = contour.spline_distance_orthogonality(spline, point);
+        if closer(dist, selected_dist) {
+          selected_dist = dist;
+        }
+      }
+    }
+    selected_dist.0
+  }
+
+  /// Sample the multi-channel signed pseudo distance of the shape at the given
+  /// [`Point`]
   pub fn sample(&self, point: Point) -> [f32; 3] {
     let mut red_spline = None;
     let mut green_spline = None;
@@ -35,7 +50,7 @@ impl Shape {
 
     for contour in self.contours.iter() {
       for spline in contour.splines() {
-        let dist = contour.spline_distance(spline, point);
+        let dist = contour.spline_distance_orthogonality(spline, point);
 
         if (spline.colour & Red == Red) && closer(dist, red_dist) {
           red_dist = dist;
@@ -74,7 +89,7 @@ impl Shape {
     });
 
     // alternative outputs for testing
-    const _SCALE: f32 = 3.;
+    // const _SCALE: f32 = 3.;
     [
       // red_dist.0, green_dist.0, blue_dist.0,
       // red_dist.1 * _SCALE, green_dist.1 * _SCALE, blue_dist.1 * _SCALE,

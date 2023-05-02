@@ -60,6 +60,8 @@ fn gen() {
   for y in 0..image.height {
     for x in 0..image.width {
       let point = Point::from((x as f32, y as f32));
+      // let pixel = shape.sample_single_channel(point);
+      // let pixel = [pixel, pixel, pixel].map(|sp| distance_color(sp));
       let pixel = shape.sample(point);
       let pixel = pixel.map(|sp| distance_color(sp));
       image.set_pixel([x, y], pixel);

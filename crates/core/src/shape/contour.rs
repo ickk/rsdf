@@ -7,7 +7,8 @@ pub type SegmentIndex = (SegmentKind, /* points index */ usize);
 
 /// The length of a spline (the number of segments it contains) and an index
 /// into the segment buffer where the spline starts
-pub type SplineIndex = (/* length */ usize, /* segments index */ usize);
+pub type SplineIndex =
+  (/* length */ usize, /* segments index */ usize);
 
 /// A reference to a spline in the [`Contour`]
 #[derive(Debug, Clone, Copy)]
@@ -27,6 +28,7 @@ impl Spline<'_> {
 ///
 /// Sharp corners are assumed to be located at the boundary points of adjacent
 /// splines.
+#[derive(Debug, Clone)]
 pub struct Contour {
   /// A buffer containing the points
   pub points: Vec<Point>,
@@ -80,7 +82,7 @@ impl<'contour> Contour {
 
   /// Calculate the signed distance and orthogonality of a [`Point`] from a
   /// [`Spline`]
-  pub fn spline_distance(
+  pub fn spline_distance_orthogonality(
     &self,
     spline: Spline,
     point: Point,
@@ -331,44 +333,44 @@ mod tests {
 
     {
       let point = (0., 0.).into();
-      let (dist, _) = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., 1.).into();
-      let (dist, _) = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
       let expected = -SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., -1.).into();
       // lies exactly on the curve so the sign is undefined
-      let dist = contour.spline_distance(spline, point).0.abs();
+      let dist = contour.spline_distance_orthogonality(spline, point).0.abs();
       let expected = SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (0.5, 1.5).into();
-      let (dist, _) = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
       let expected = -SQRT_2 / 2.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 3.).into();
-      let (dist, _) = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
       let expected = -1.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 1.5).into();
-      let (dist, _) = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
       let expected = 0.5;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (5., 0.).into();
-      let (dist, _) = contour.spline_distance(spline, point);
+      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
       let expected = -1. / 5f32.sqrt();
       assert_approx_eq!(f32, dist, expected);
     }
