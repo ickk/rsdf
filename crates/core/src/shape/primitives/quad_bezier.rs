@@ -96,7 +96,7 @@ mod tests {
   use float_cmp::assert_approx_eq;
 
   #[test]
-  fn sample_quad_bezier() {
+  fn sample() {
     use super::*;
     {
       let quad = [(0., 0.).into(), (2., 2.).into(), (4., 0.).into()];
@@ -122,7 +122,7 @@ mod tests {
   }
 
   #[test]
-  fn sample_quad_bezier_direction() {
+  fn sample_derivative() {
     use super::*;
     {
       let quad = [(0., 0.).into(), (2., 2.).into(), (4., 0.).into()];

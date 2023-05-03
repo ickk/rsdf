@@ -268,7 +268,7 @@ mod tests {
   }
 
   #[test]
-  fn spline_distance() {
+  fn spline_distance_orthogonality() {
     use super::*;
     use std::f32::consts::SQRT_2;
     use SegmentKind::*;

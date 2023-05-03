@@ -5,6 +5,9 @@ use std::ops::RangeBounds;
 pub const EPSILON: f32 = 0.0001;
 
 /// Find real roots in the given range
+///
+/// `polynomial`: array of coefficients in ascending order by degree.
+/// `range`: filter the roots found to this range.
 pub fn roots_in_range<const TERMS: usize, R: RangeBounds<f32>>(
   polynomial: &[f32; TERMS],
   range: R,
