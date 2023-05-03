@@ -40,31 +40,21 @@ fn gen() {
   ];
   let splines = vec![
     // contour_0
-    (1, 0), // 0
-    (1, 1),
-    (1, 2),
+    (1, 0, Magenta), // 0
+    (1, 1, Yellow),
+    (1, 2, Cyan),
     // contour_1
-    (1, 3), // 3
-    (1, 4),
-    (1, 5),
-    ];
-  let spline_colours = vec![
-    // contour_0
-    Magenta, Yellow, Cyan,
-    // contour_1
-    Magenta, Yellow, Cyan,
-    ];
-
-  let contours = vec![
-    (3, 0),
-    (3, 3),
+    (1, 3, Magenta), // 3
+    (1, 4, Yellow),
+    (1, 5, Cyan),
   ];
+
+  let contours = vec![(3, 0), (3, 3)];
 
   let shape = Shape {
     points,
     segments,
     splines,
-    spline_colours,
     contours,
   };
 

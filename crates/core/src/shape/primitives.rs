@@ -29,7 +29,7 @@ pub enum SegmentKind {
 impl Shape {
   /// Get a segment given a `SegmentRef`
   #[inline]
-  fn get_segment(&self, (kind, i): SegmentRef) -> Segment {
+  pub fn get_segment(&self, (kind, i): SegmentRef) -> Segment {
     match kind {
       SegmentKind::Line => Segment::Line(&self.points[i..i + 2]),
       SegmentKind::QuadBezier => Segment::QuadBezier(&self.points[i..i + 3]),
@@ -95,26 +95,6 @@ impl Segment<'_> {
   }
 }
 
-/// Helps turn a `RangeBounds<f32>` into a pair of `f32`s.
-#[rustfmt::skip]
-#[inline]
-pub fn range_to_values<R: RangeBounds<f32> + Clone>(
-  range: R,
-) -> (/* start */ f32, /* end */ f32) {
-  use Bound::*;
-  match (range.start_bound(), range.end_bound()) {
-    (Unbounded, Unbounded) => (f32::NEG_INFINITY, f32::INFINITY),
-    (Unbounded, Included(&end))
-    | (Unbounded, Excluded(&end)) => (f32::NEG_INFINITY, end),
-    (Included(&start), Unbounded)
-    | (Excluded(&start), Unbounded) => (start, f32::INFINITY),
-    (Included(&start), Included(&end))
-    | (Included(&start), Excluded(&end))
-    | (Excluded(&start), Excluded(&end))
-    | (Excluded(&start), Included(&end)) => (start, end),
-  }
-}
-
 pub trait Primitive {
   /// The type of the collection of `t` values that can be iterated
   type Ts: IntoIterator<Item = f32>;
@@ -145,5 +125,25 @@ pub trait Primitive {
   #[inline]
   fn distance(ps: &[Point], point: Point) -> (/* dist */ f32, /* t */ f32) {
     Self::pseudo_distance(ps, point, 0f32..=1f32)
+  }
+}
+
+/// Helps turn a `RangeBounds<f32>` into a pair of `f32`s.
+#[rustfmt::skip]
+#[inline]
+pub fn range_to_values<R: RangeBounds<f32> + Clone>(
+  range: R,
+) -> (/* start */ f32, /* end */ f32) {
+  use Bound::*;
+  match (range.start_bound(), range.end_bound()) {
+    (Unbounded, Unbounded) => (f32::NEG_INFINITY, f32::INFINITY),
+    (Unbounded, Included(&end))
+    | (Unbounded, Excluded(&end)) => (f32::NEG_INFINITY, end),
+    (Included(&start), Unbounded)
+    | (Excluded(&start), Unbounded) => (start, f32::INFINITY),
+    (Included(&start), Included(&end))
+    | (Included(&start), Excluded(&end))
+    | (Excluded(&start), Excluded(&end))
+    | (Excluded(&start), Included(&end)) => (start, end),
   }
 }
