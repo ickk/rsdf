@@ -1,12 +1,12 @@
 pub mod colour;
 pub mod distance;
-pub mod sample;
 pub mod primitives;
+pub mod sample;
 
 use crate::*;
-use std::ops::Range;
 pub use colour::{Colour, Colour::*};
-pub use primitives::*;
+pub use primitives::{Primitive, Segment, SegmentKind};
+use std::ops::Range;
 
 /// Reference to a segment
 ///
@@ -30,7 +30,7 @@ pub struct Spline {
 /// splines.
 #[derive(Debug, Clone)]
 pub struct Contour {
-  pub spline_range: Range<usize>
+  pub spline_range: Range<usize>,
 }
 
 /// Representation of a shape ready to be decomposed into a raster SDF
@@ -48,67 +48,91 @@ pub struct Shape {
   // between teardrop and fully-smooth contours.
 }
 
-/*
 #[test]
-  fn contour_get_spline_segments() {
-    use super::*;
-    let points = vec![
-      (0., 0.).into(), // Line
-      (1., 1.).into(), // Quad
-      (2., 2.).into(),
-      (3., 3.).into(), // Cubic
+fn get_segment() {
+  use super::*;
+  use SegmentKind::*;
+
+  let points = vec![
+    (0., 0.).into(), // Line
+    (1., 1.).into(), // Quad
+    (2., 2.).into(),
+    (3., 3.).into(), // Cubic
+    (4., 4.).into(),
+    (5., 5.).into(),
+    (6., 6.).into(), // Line
+    (7., 7.).into(), // Line
+    (0., 0.).into(),
+  ];
+  let segments = vec![
+    SegmentRef {
+      kind: Line,
+      points_index: 0,
+    },
+    SegmentRef {
+      kind: QuadBezier,
+      points_index: 1,
+    },
+    SegmentRef {
+      kind: CubicBezier,
+      points_index: 3,
+    },
+    SegmentRef {
+      kind: Line,
+      points_index: 6,
+    },
+    SegmentRef {
+      kind: Line,
+      points_index: 7,
+    },
+  ];
+  let splines = vec![
+    Spline {
+      colour: Magenta,
+      segments_range: 0..3,
+    },
+    Spline {
+      colour: Yellow,
+      segments_range: 3..5,
+    },
+  ];
+  let contours = vec![
+    Contour { spline_range: 0..1 },
+    Contour { spline_range: 1..2 },
+  ];
+  let shape = Shape {
+    points,
+    segments: segments.clone(),
+    splines,
+    contours,
+  };
+
+  {
+    let result: Vec<_> = shape
+      .segments
+      .iter()
+      .map(|&segment_ref| shape.get_segment(segment_ref))
+      .collect();
+
+    let s1 = [(0., 0.).into(), (1., 1.).into()];
+    let s2 = [(1., 1.).into(), (2., 2.).into(), (3., 3.).into()];
+    let s3 = [
+      (3., 3.).into(),
       (4., 4.).into(),
       (5., 5.).into(),
-      (6., 6.).into(), // Line
-      (7., 7.).into(), // Line
-      (0., 0.).into(),
-      ];
-    let segments = vec![
-      (SegmentKind::Line, 0),
-      (SegmentKind::QuadBezier, 1),
-      (SegmentKind::CubicBezier, 3),
-      (SegmentKind::Line, 6),
-      (SegmentKind::Line, 7),
-      ];
-    let splines = vec![(3, 0, Magenta), (2, 3, Yellow)];
-    let contours = vec![(1, 0), (1, 1)];
-    let shape = Shape {
-      points,
-      segments,
-      splines,
-      contours,
-    };
+      (6., 6.).into(),
+    ];
+    let s4 = [(6., 6.).into(), (7., 7.).into()];
+    let s5 = [(7., 7.).into(), (0., 0.).into()];
 
-    {
-      let result: Vec<_> = shape.segments(shape.get_spline((3, 0, Magenta))).collect();
+    let expected = vec![
+      Segment::Line(&s1),
+      Segment::QuadBezier(&s2),
+      Segment::CubicBezier(&s3),
+      Segment::Line(&s4),
+      Segment::Line(&s5),
+    ];
 
-      let s1 = [(0., 0.).into(), (1., 1.).into()];
-      let s2 = [(1., 1.).into(), (2., 2.).into(), (3., 3.).into()];
-      let s3 = [
-        (3., 3.).into(),
-        (4., 4.).into(),
-        (5., 5.).into(),
-        (6., 6.).into(),
-      ];
-
-      let expected = vec![
-        Segment::Line(&s1),
-        Segment::QuadBezier(&s2),
-        Segment::CubicBezier(&s3),
-      ];
-
-      assert_eq!(result, expected);
-    }
-
-    {
-      let result: Vec<_> = shape.segments(shape.get_spline(splines[1])).collect();
-
-      let s4 = [(6., 6.).into(), (7., 7.).into()];
-      let s5 = [(7., 7.).into(), (0., 0.).into()];
-
-      let expected = vec![Segment::Line(&s4), Segment::Line(&s5)];
-
-      assert_eq!(result, expected);
-    }
+    assert_eq!(result, expected);
   }
-*/
+}

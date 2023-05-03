@@ -59,18 +59,36 @@ fn gen() {
   ];
   let splines = vec![
     // contour_0
-    Spline { segments_range: 0..1, colour: Magenta }, // 0
-    Spline { segments_range: 1..2, colour: Yellow },
-    Spline { segments_range: 2..3, colour: Cyan },
+    Spline {
+      segments_range: 0..1,
+      colour: Magenta,
+    }, // 0
+    Spline {
+      segments_range: 1..2,
+      colour: Yellow,
+    },
+    Spline {
+      segments_range: 2..3,
+      colour: Cyan,
+    },
     // contour_1
-    Spline { segments_range: 3..4, colour: Magenta },  // 3
-    Spline { segments_range: 4..5, colour: Yellow },
-    Spline { segments_range: 5..6, colour: Cyan },
+    Spline {
+      segments_range: 3..4,
+      colour: Magenta,
+    }, // 3
+    Spline {
+      segments_range: 4..5,
+      colour: Yellow,
+    },
+    Spline {
+      segments_range: 5..6,
+      colour: Cyan,
+    },
   ];
 
   let contours = vec![
-    Contour{ spline_range: 0..3 },
-    Contour { spline_range: 3..6 }
+    Contour { spline_range: 0..3 },
+    Contour { spline_range: 3..6 },
   ];
 
   let shape = Shape {

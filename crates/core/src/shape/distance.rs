@@ -12,7 +12,7 @@ impl Shape {
     let mut selected_dist = f32::INFINITY;
     // initial values don't matter since the first distance will always be set
     let mut selected_segment = None;
-    let mut selected_t = 0f32;
+    let mut selected_t = f32::NAN;
 
     for &segment_ref in &self.segments[segments_range] {
       let segment = self.get_segment(segment_ref);
@@ -48,7 +48,7 @@ impl Shape {
   ) -> f32 {
     let mut selected_dist = f32::INFINITY;
     let mut selected_segment = None;
-    let mut selected_t = 0.0;
+    let mut selected_t = f32::NAN;
     // A place to store the points of extension lines if we need to construct
     // them.
     let mut extension_buf = [Point::ZERO; 2];
@@ -81,8 +81,8 @@ impl Shape {
     else {
       let mut extended = false;
 
-      for (i, &segment_ref)
-        in self.segments[segments_range.clone()].iter().enumerate()
+      for (i, &segment_ref) in
+        self.segments[segments_range.clone()].iter().enumerate()
       {
         let segment = self.get_segment(segment_ref);
 
@@ -146,7 +146,7 @@ fn check_start_extension(
   let p0 = segment.sample(0.);
   let p1 = p0 + segment.sample_derivative(0.);
   *extension_buf = [p0, p1];
-  Line::pseudo_distance(extension_buf, point, ..)
+  primitives::Line::pseudo_distance(extension_buf, point, ..)
 }
 
 /// Helper to generate & evaluate the straight line extending from the end of
@@ -160,10 +160,9 @@ fn check_end_extension(
   let p0 = segment.sample(1.);
   let p1 = p0 + segment.sample_derivative(1.);
   *extension_buf = [p0, p1];
-  Line::pseudo_distance(extension_buf, point, ..)
+  primitives::Line::pseudo_distance(extension_buf, point, ..)
 }
 
-/*
 #[cfg(any(test, doctest))]
 mod tests {
   use float_cmp::assert_approx_eq;
@@ -172,67 +171,97 @@ mod tests {
   fn spline_pseudo_distance() {
     use super::*;
     use std::f32::consts::SQRT_2;
+    use SegmentKind::*;
 
-    let points = &[
-        (5., -1.).into(),
-        (4., 1.).into(),
-        (3., 3.).into(),
-        (1., 1.).into(),
-        (0., 0.).into(),
-        (5., -1.).into(),
-      ];
-    let segments = &[
-        (SegmentKind::Line, 0),
-        (SegmentKind::QuadBezier, 1),
-        (SegmentKind::Line, 3),
-        (SegmentKind::Line, 4),
-      ];
-    let splines = &[(3, 0), (1, 3)];
-    let spline_colours = &[Magenta, Yellow];
+    let points = vec![
+      (5., -1.).into(),
+      (4., 1.).into(),
+      (3., 3.).into(),
+      (1., 1.).into(),
+      (0., 0.).into(),
+      (5., -1.).into(),
+    ];
+    let segments = vec![
+      SegmentRef {
+        kind: Line,
+        points_index: 0,
+      },
+      SegmentRef {
+        kind: QuadBezier,
+        points_index: 1,
+      },
+      SegmentRef {
+        kind: Line,
+        points_index: 3,
+      },
+      SegmentRef {
+        kind: Line,
+        points_index: 4,
+      },
+    ];
+    let splines = vec![
+      Spline {
+        segments_range: 0..3,
+        colour: Magenta,
+      },
+      Spline {
+        segments_range: 3..4,
+        colour: Yellow,
+      },
+    ];
+    let contours = vec![Contour { spline_range: 0..2 }];
+    let shape = Shape {
+      points,
+      segments,
+      splines,
+      contours,
+    };
 
-    let contour = Contour { splines };
-    let spline = contour.splines().next().unwrap();
+    let Spline {
+      segments_range,
+      colour: _,
+    } = shape.splines[0].clone();
 
     {
       let point = (0., 0.).into();
-      let dist = contour.spline_pseudo_distance(spline, point);
+      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., 1.).into();
-      let dist = contour.spline_pseudo_distance(spline, point);
+      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
       let expected = -SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., -1.).into();
       // lies exactly on the curve so the sign is undefined
-      let dist = contour.spline_pseudo_distance(spline, point);
+      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (0.5, 1.5).into();
-      let dist = contour.spline_pseudo_distance(spline, point);
+      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
       let expected = -SQRT_2 / 2.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 3.).into();
-      let dist = contour.spline_pseudo_distance(spline, point);
+      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
       let expected = -1.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 1.5).into();
-      let dist = contour.spline_pseudo_distance(spline, point);
+      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
       let expected = 0.5;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (5., 0.).into();
-      let dist = contour.spline_pseudo_distance(spline, point);
+      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
       let expected = -1. / 5f32.sqrt();
       assert_approx_eq!(f32, dist, expected);
     }
@@ -242,75 +271,108 @@ mod tests {
   fn spline_distance() {
     use super::*;
     use std::f32::consts::SQRT_2;
+    use SegmentKind::*;
 
-    let points = &[
-        (5., -1.).into(),
-        (4., 1.).into(),
-        (3., 3.).into(),
-        (1., 1.).into(),
-        (0., 0.).into(),
-        (5., -1.).into(),
-      ];
-    let segments = &[
-        (SegmentKind::Line, 0),
-        (SegmentKind::QuadBezier, 1),
-        (SegmentKind::Line, 3),
-        (SegmentKind::Line, 4),
-      ];
-    let splines = &[(3, 0), (1, 3)];
-    let spline_colours = &[Magenta, Yellow];
-
-    let contour = Contour {
+    let points = vec![
+      (5., -1.).into(),
+      (4., 1.).into(),
+      (3., 3.).into(),
+      (1., 1.).into(),
+      (0., 0.).into(),
+      (5., -1.).into(),
+    ];
+    let segments = vec![
+      SegmentRef {
+        kind: Line,
+        points_index: 0,
+      },
+      SegmentRef {
+        kind: QuadBezier,
+        points_index: 1,
+      },
+      SegmentRef {
+        kind: Line,
+        points_index: 3,
+      },
+      SegmentRef {
+        kind: Line,
+        points_index: 4,
+      },
+    ];
+    let splines = vec![
+      Spline {
+        segments_range: 0..3,
+        colour: Magenta,
+      },
+      Spline {
+        segments_range: 3..4,
+        colour: Yellow,
+      },
+    ];
+    let contours = vec![Contour { spline_range: 0..2 }];
+    let shape = Shape {
       points,
       segments,
       splines,
-      spline_colours,
+      contours,
     };
-    let spline = contour.splines().next().unwrap();
+
+    let Spline {
+      segments_range,
+      colour: _,
+    } = shape.splines[0].clone();
 
     {
       let point = (0., 0.).into();
-      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
+      let (dist, _) =
+        shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., 1.).into();
-      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
+      let (dist, _) =
+        shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., -1.).into();
       // lies exactly on the curve so the sign is undefined
-      let dist = contour.spline_distance_orthogonality(spline, point).0.abs();
+      let dist = shape
+        .spline_distance_orthogonality(segments_range.clone(), point)
+        .0
+        .abs();
       let expected = SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (0.5, 1.5).into();
-      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
+      let (dist, _) =
+        shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -SQRT_2 / 2.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 3.).into();
-      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
+      let (dist, _) =
+        shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -1.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 1.5).into();
-      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
+      let (dist, _) =
+        shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = 0.5;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (5., 0.).into();
-      let (dist, _) = contour.spline_distance_orthogonality(spline, point);
+      let (dist, _) =
+        shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -1. / 5f32.sqrt();
       assert_approx_eq!(f32, dist, expected);
     }
   }
 }
-*/
