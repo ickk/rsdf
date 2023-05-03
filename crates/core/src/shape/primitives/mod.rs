@@ -26,6 +26,18 @@ pub enum SegmentKind {
   CubicBezier,
 }
 
+impl Shape {
+  /// Get a segment given a `SegmentRef`
+  #[inline]
+  fn get_segment(&self, (kind, i): SegmentRef) -> Segment {
+    match kind {
+      SegmentKind::Line => Segment::Line(&self.points[i..i + 2]),
+      SegmentKind::QuadBezier => Segment::QuadBezier(&self.points[i..i + 3]),
+      SegmentKind::CubicBezier => Segment::CubicBezier(&self.points[i..i + 4]),
+    }
+  }
+}
+
 /// A reference to a segment in the Contour
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Segment<'contour> {

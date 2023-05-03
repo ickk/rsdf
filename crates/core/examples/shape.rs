@@ -13,46 +13,59 @@ fn gen() {
   eprintln!("{filename:?}");
 
   let points: Vec<Point> = vec![
-    (27., 20.).into(),
+    // contour_0
+    (27., 20.).into(), // 0
     (21., 20.).into(),
     (11.1, 29.).into(),
     (3., 13.).into(),
     (19.5, 13.).into(),
     (21., 2.).into(),
-    (27., 20.).into(),
-  ];
-
-  let contour = Contour {
-    points,
-    segments: vec![
-      (SegmentKind::CubicBezier, 0),
-      (SegmentKind::Line, 3),
-      (SegmentKind::QuadBezier, 4),
-    ],
-    splines: vec![(1, 0), (1, 1), (1, 2)],
-    spline_colours: vec![Magenta, Yellow, Cyan],
-  };
-
-  let points2: Vec<Point> = vec![
-    (13., 15.).into(),
+    (27., 20.).into(), // 6
+    // contour_1
+    (13., 15.).into(), // 7
     (13., 20.).into(),
     (19., 20.).into(),
-    (13., 15.).into(),
+    (13., 15.).into(), // 10
   ];
 
-  let contour2 = Contour {
-    points: points2,
-    segments: vec![
-      (SegmentKind::Line, 0),
-      (SegmentKind::Line, 1),
-      (SegmentKind::Line, 2),
-    ],
-    splines: vec![(1, 0), (1, 1), (1, 2)],
-    spline_colours: vec![Magenta, Yellow, Cyan],
-  };
+  let segments = vec![
+    // contour_0
+    (SegmentKind::CubicBezier, 0), // 0
+    (SegmentKind::Line, 3),
+    (SegmentKind::QuadBezier, 4),
+    // contour_1
+    (SegmentKind::Line, 7), // 3
+    (SegmentKind::Line, 8),
+    (SegmentKind::Line, 9),
+  ];
+  let splines = vec![
+    // contour_0
+    (1, 0), // 0
+    (1, 1),
+    (1, 2),
+    // contour_1
+    (1, 3), // 3
+    (1, 4),
+    (1, 5),
+    ];
+  let spline_colours = vec![
+    // contour_0
+    Magenta, Yellow, Cyan,
+    // contour_1
+    Magenta, Yellow, Cyan,
+    ];
+
+  let contours = vec![
+    (3, 0),
+    (3, 3),
+  ];
 
   let shape = Shape {
-    contours: vec![contour, contour2],
+    points,
+    segments,
+    splines,
+    spline_colours,
+    contours,
   };
 
   let mut image = Image::new(&filename, [30, 30]);

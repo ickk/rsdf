@@ -10,6 +10,6 @@ pub(crate) use shape::*;
 pub use image::Image;
 pub use math::{Point, Vector};
 pub use shape::{
-  distance_color, Colour, Colour::*, Contour, SegmentIndex, SegmentKind,
-  Shape, SplineIndex,
+  distance_color, Colour, Colour::*, Contour, SegmentRef, SegmentKind,
+  Shape, SplineRef, ContourRef,
 };

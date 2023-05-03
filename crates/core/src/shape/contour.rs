@@ -1,19 +1,9 @@
 use crate::*;
 
-/// The kind of a segment & an index into the points buffer where this segment
-/// starts
-// SegmentKind implicitly gives the length
-pub type SegmentIndex = (SegmentKind, /* points index */ usize);
-
-/// The length of a spline (the number of segments it contains) and an index
-/// into the segment buffer where the spline starts
-pub type SplineIndex =
-  (/* length */ usize, /* segments index */ usize);
-
 /// A reference to a spline in the [`Contour`]
 #[derive(Debug, Clone, Copy)]
 pub struct Spline<'contour> {
-  pub segments: &'contour [SegmentIndex],
+  pub segments: &'contour [SegmentRef],
   pub colour: Colour,
 }
 
@@ -28,24 +18,24 @@ impl Spline<'_> {
 ///
 /// Sharp corners are assumed to be located at the boundary points of adjacent
 /// splines.
-#[derive(Debug, Clone)]
-pub struct Contour {
+#[derive(Debug, Clone, Copy)]
+pub struct Contour<'shape> {
   /// A buffer containing the points
-  pub points: Vec<Point>,
+  pub points: &'shape [Point],
   /// A buffer containing references to the segments
-  pub segments: Vec<SegmentIndex>,
+  pub segments: &'shape [SegmentRef],
   /// A buffer containing references to the splines
-  pub splines: Vec<SplineIndex>,
+  pub splines: &'shape [SplineRef],
   /// A buffer containing the colours corresponding to the respective Spline.
-  pub spline_colours: Vec<Colour>,
+  pub spline_colours: &'shape [Colour],
   // TODO: add a flag for fully-smooth. Otherwise there's an ambiguity
   // between teardrop and fully-smooth contours.
 }
 
-impl<'contour> Contour {
-  /// Get a segment given a `SegmentIndex`
+impl<'shape> Contour<'shape> {
+  /// Get a segment given a `SegmentRef`
   #[inline]
-  fn get_segment(&self, (kind, i): SegmentIndex) -> Segment {
+  fn get_segment(&self, (kind, i): SegmentRef) -> Segment {
     match kind {
       SegmentKind::Line => Segment::Line(&self.points[i..i + 2]),
       SegmentKind::QuadBezier => Segment::QuadBezier(&self.points[i..i + 3]),
@@ -55,7 +45,7 @@ impl<'contour> Contour {
 
   /// Get the `Spline` at the given index
   #[inline]
-  fn get_spline(&self, i: usize) -> Spline {
+  pub fn get_spline(&self, i: usize) -> Spline {
     let (length, index) = self.splines[i];
     Spline {
       segments: &self.segments[index..index + length],
@@ -66,9 +56,9 @@ impl<'contour> Contour {
   /// Get an iterator over the [`Segment`]s in a given [`Spline`]
   #[inline]
   pub fn segments(
-    &'contour self,
-    spline: Spline<'contour>,
-  ) -> impl Iterator<Item = Segment> + 'contour {
+    &'shape self,
+    spline: Spline<'shape>,
+  ) -> impl Iterator<Item = Segment> + 'shape {
     spline
       .segments
       .iter()
@@ -239,25 +229,29 @@ mod tests {
     use super::*;
     use std::f32::consts::SQRT_2;
 
-    let contour = Contour {
-      points: vec![
+    let points = &[
         (5., -1.).into(),
         (4., 1.).into(),
         (3., 3.).into(),
         (1., 1.).into(),
         (0., 0.).into(),
         (5., -1.).into(),
-      ],
-      segments: vec![
+      ];
+    let segments = &[
         (SegmentKind::Line, 0),
         (SegmentKind::QuadBezier, 1),
         (SegmentKind::Line, 3),
         (SegmentKind::Line, 4),
-      ],
-      splines: vec![(3, 0), (1, 3)],
-      spline_colours: vec![Magenta, Yellow],
-    };
+      ];
+    let splines = &[(3, 0), (1, 3)];
+    let spline_colours = &[Magenta, Yellow];
 
+    let contour = Contour {
+      points,
+      segments,
+      splines,
+      spline_colours,
+    };
     let spline = contour.splines().next().unwrap();
 
     {
@@ -310,25 +304,29 @@ mod tests {
     use super::*;
     use std::f32::consts::SQRT_2;
 
-    let contour = Contour {
-      points: vec![
+    let points = &[
         (5., -1.).into(),
         (4., 1.).into(),
         (3., 3.).into(),
         (1., 1.).into(),
         (0., 0.).into(),
         (5., -1.).into(),
-      ],
-      segments: vec![
+      ];
+    let segments = &[
         (SegmentKind::Line, 0),
         (SegmentKind::QuadBezier, 1),
         (SegmentKind::Line, 3),
         (SegmentKind::Line, 4),
-      ],
-      splines: vec![(3, 0), (1, 3)],
-      spline_colours: vec![Magenta, Yellow],
-    };
+      ];
+    let splines = &[(3, 0), (1, 3)];
+    let spline_colours = &[Magenta, Yellow];
 
+    let contour = Contour {
+      points,
+      segments,
+      splines,
+      spline_colours,
+    };
     let spline = contour.splines().next().unwrap();
 
     {
@@ -379,27 +377,32 @@ mod tests {
   #[test]
   fn contour_get_spline_segments() {
     use super::*;
+    let points = &[
+      (0., 0.).into(),
+      (1., 1.).into(),
+      (2., 2.).into(),
+      (3., 3.).into(),
+      (4., 4.).into(),
+      (5., 5.).into(),
+      (6., 6.).into(),
+      (7., 7.).into(),
+      (0., 0.).into(),
+      ];
+    let segments = &[
+      (SegmentKind::Line, 0),
+      (SegmentKind::QuadBezier, 1),
+      (SegmentKind::CubicBezier, 3),
+      (SegmentKind::Line, 6),
+      (SegmentKind::Line, 7),
+      ];
+    let splines = &[(3, 0), (2, 3)];
+    let spline_colours = &[Magenta, Yellow];
+
     let contour = Contour {
-      points: vec![
-        (0., 0.).into(),
-        (1., 1.).into(),
-        (2., 2.).into(),
-        (3., 3.).into(),
-        (4., 4.).into(),
-        (5., 5.).into(),
-        (6., 6.).into(),
-        (7., 7.).into(),
-        (0., 0.).into(),
-      ],
-      segments: vec![
-        (SegmentKind::Line, 0),
-        (SegmentKind::QuadBezier, 1),
-        (SegmentKind::CubicBezier, 3),
-        (SegmentKind::Line, 6),
-        (SegmentKind::Line, 7),
-      ],
-      splines: vec![(3, 0), (2, 3)],
-      spline_colours: vec![Magenta, Yellow],
+      points,
+      segments,
+      splines,
+      spline_colours,
     };
 
     {
