@@ -3,15 +3,14 @@
 mod image;
 mod math;
 mod shape;
-use image::*;
+
 use math::*;
 use shape::*;
 
 pub use image::Image;
 pub use math::{Point, Vector};
 pub use shape::{
-  Colour, Colour::*, Contour, SegmentRef, SegmentKind,
-  Shape, SplineRef, ContourRef,
+  Colour, Colour::*, Contour, SegmentKind, SegmentRef, Shape, Spline,
 };
 
 pub const MAX_DISTANCE: f32 = 5.;

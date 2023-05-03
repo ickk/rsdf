@@ -1,12 +1,18 @@
 use crate::*;
 
+/// Threshold for float comparisons
+const EPSILON: f32 = 0.0001;
+
 impl Shape {
   /// Sample the signed distance of the shape at the given [`Point`]
+  #[rustfmt::skip]
   pub fn sample_single_channel(&self, point: Point) -> f32 {
     let mut selected_dist = (f32::INFINITY, f32::NEG_INFINITY);
-    for contour in self.contours() {
-      for spline in self.splines(contour) {
-        let dist = self.spline_distance_orthogonality(spline, point);
+    for contour in self.contours.iter().cloned() {
+      for Spline { segments_range, colour: _ }
+        in self.splines[contour.spline_range].iter().cloned()
+      {
+        let dist = self.spline_distance_orthogonality(segments_range, point);
         if closer(dist, selected_dist) {
           selected_dist = dist;
         }
@@ -19,43 +25,38 @@ impl Shape {
   /// [`Point`]
   #[rustfmt::skip]
   pub fn sample(&self, point: Point) -> [f32; 3] {
-    let [mut red_spline, mut green_spline, mut blue_spline] = [None; 3];
+    let [mut red_spline, mut green_spline, mut blue_spline] =
+      [None, None, None];
     let [mut red_dist, mut green_dist, mut blue_dist] =
       [(f32::INFINITY, f32::NEG_INFINITY); 3];
 
-    for contour in self.contours() {
-      for spline in self.splines(contour) {
-        let dist = self.spline_distance_orthogonality(spline, point);
+    for Contour { spline_range } in self.contours.iter().cloned() {
+      for Spline { segments_range, colour }
+        in self.splines[spline_range].iter().cloned()
+      {
+        let dist = self.spline_distance_orthogonality(segments_range.clone(), point);
 
-        if (spline.colour & Red == Red) && closer(dist, red_dist) {
+        if (colour & Red == Red) && closer(dist, red_dist) {
           red_dist = dist;
-          red_spline = Some(
-            spline,
-          );
+          red_spline = Some(segments_range.clone());
         }
 
-        if (spline.colour & Green == Green) && closer(dist, green_dist) {
+        if (colour & Green == Green) && closer(dist, green_dist) {
           green_dist = dist;
-          green_spline = Some(
-            spline,
-          );
+          green_spline = Some(segments_range.clone());
         }
 
-        if (spline.colour & Blue == Blue) && closer(dist, blue_dist) {
+        if (colour & Blue == Blue) && closer(dist, blue_dist) {
           blue_dist = dist;
-          blue_spline = Some(
-            spline,
-          );
+          blue_spline = Some(segments_range);
         }
       }
     }
 
     [red_spline, green_spline, blue_spline].map(|r| {
-      r.map_or(
-        f32::NEG_INFINITY,
-        |spline|
-          self.spline_pseudo_distance(spline, point)
-      )
+      r.map_or(f32::NEG_INFINITY, |spline| {
+        self.spline_pseudo_distance(spline, point)
+      })
     })
   }
 }

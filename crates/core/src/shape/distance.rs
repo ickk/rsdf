@@ -1,11 +1,12 @@
 use crate::*;
+use std::ops::Range;
 
 impl Shape {
   /// Calculate the signed distance and orthogonality of a [`Point`] from a
   /// [`Spline`]
   pub fn spline_distance_orthogonality(
     &self,
-    spline: Spline,
+    segments_range: Range<usize>,
     point: Point,
   ) -> (/* dist */ f32, /* orth */ f32) {
     let mut selected_dist = f32::INFINITY;
@@ -13,7 +14,8 @@ impl Shape {
     let mut selected_segment = None;
     let mut selected_t = 0f32;
 
-    for segment in self.segments(spline) {
+    for &segment_ref in &self.segments[segments_range] {
+      let segment = self.get_segment(segment_ref);
       let (dist, t) = segment.distance(point);
       if dist < selected_dist {
         selected_dist = dist;
@@ -39,7 +41,11 @@ impl Shape {
   }
 
   /// Calculate the signed pseudo distance of a [`Point`] from a [`Spline`]
-  pub fn spline_pseudo_distance(&self, spline: Spline, point: Point) -> f32 {
+  pub fn spline_pseudo_distance(
+    &self,
+    segments_range: Range<usize>,
+    point: Point,
+  ) -> f32 {
     let mut selected_dist = f32::INFINITY;
     let mut selected_segment = None;
     let mut selected_t = 0.0;
@@ -48,8 +54,10 @@ impl Shape {
     let mut extension_buf = [Point::ZERO; 2];
 
     // If there's only one segment in this spline
-    if spline.len() == 1 {
-      let segment = self.segments(spline).next().unwrap();
+    if segments_range.len() == 1 {
+      let segment_ref = self.segments[segments_range.start];
+      let segment = self.get_segment(segment_ref);
+
       let (mut dist, mut t) = segment.pseudo_distance(point, ..);
       let mut segment_extended = false;
       if t < 0f32 {
@@ -73,7 +81,11 @@ impl Shape {
     else {
       let mut extended = false;
 
-      for (i, segment) in self.segments(spline).enumerate() {
+      for (i, &segment_ref)
+        in self.segments[segments_range.clone()].iter().enumerate()
+      {
+        let segment = self.get_segment(segment_ref);
+
         let (mut dist, mut t);
         let mut segment_extended = false;
         // start of the spline
@@ -86,7 +98,7 @@ impl Shape {
           }
         }
         // end of the spline
-        else if i == spline.len() - 1 {
+        else if i == segments_range.len() - 1 {
           (dist, t) = segment.pseudo_distance(point, 0f32..);
           if t > 1f32 {
             (dist, t) =

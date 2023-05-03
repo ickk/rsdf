@@ -4,116 +4,51 @@ pub mod sample;
 pub mod primitives;
 
 use crate::*;
+use std::ops::Range;
 pub use colour::{Colour, Colour::*};
 pub use primitives::*;
 
-/// threshold for float comparisons
-const EPSILON: f32 = 0.0001;
-
-/// The kind of a segment & an index into the points buffer where this segment
-/// starts
+/// Reference to a segment
 ///
 /// SegmentKind implicitly gives the length.
-pub type SegmentRef = (SegmentKind, /* points index */ usize);
-
-/// The length of a spline (the number of segments it contains) and an index
-/// into the segment buffer where the spline starts
-pub type SplineRef = (
-  /* length */ usize,
-  /* segments index */ usize,
-  Colour,
-);
-
-pub type ContourRef =
-  (/* length */ usize, /* splines index */ usize);
-
-/// A reference to a spline in the [`Contour`]
 #[derive(Debug, Clone, Copy)]
-pub struct Spline<'contour> {
-  pub segments: &'contour [SegmentRef],
+pub struct SegmentRef {
+  pub kind: SegmentKind,
+  pub points_index: usize,
+}
+
+/// Reference to a spline in the [`Contour`]
+#[derive(Debug, Clone)]
+pub struct Spline {
+  pub segments_range: Range<usize>,
   pub colour: Colour,
 }
 
-impl Spline<'_> {
-  /// The number of segments in this spline
-  pub fn len(&self) -> usize {
-    self.segments.len()
-  }
-}
-
-/// A Contour is a path describing a closed region of space.
+/// Path describing a closed region of space
 ///
 /// Sharp corners are assumed to be located at the boundary points of adjacent
 /// splines.
-#[derive(Debug, Clone, Copy)]
-pub struct Contour<'shape> {
-  pub splines: &'shape [SplineRef],
+#[derive(Debug, Clone)]
+pub struct Contour {
+  pub spline_range: Range<usize>
 }
 
-/// A representation of a shape ready to be decomposed into a raster SDF
+/// Representation of a shape ready to be decomposed into a raster SDF
 #[derive(Debug, Clone)]
 pub struct Shape {
-  /// A buffer containing the points
+  /// Buffer containing the points
   pub points: Vec<Point>,
-  /// A buffer containing references to the segments
+  /// Buffer containing references to the segments
   pub segments: Vec<SegmentRef>,
-  /// A buffer containing references to the splines
-  pub splines: Vec<SplineRef>,
-  /// A buffer containing the contours
-  pub contours: Vec<ContourRef>,
+  /// Buffer containing references to the splines
+  pub splines: Vec<Spline>,
+  /// Buffer containing the contours
+  pub contours: Vec<Contour>,
   // TODO: add a flag for fully-smooth. Otherwise there's an ambiguity
   // between teardrop and fully-smooth contours.
 }
 
-impl Shape {
-  /// Get the contour given a spline index and length
-  fn get_contour<'shape>(&'shape self, i: usize) -> Contour<'shape> {
-    let (length, index) = self.contours[i];
-    Contour {
-      splines: &self.splines[index..index + length],
-    }
-  }
-
-  /// Get the `Spline` at the given index
-  #[inline]
-  fn get_spline(&self, i: usize) -> Spline {
-    let (length, index, colour) = self.splines[i];
-    Spline {
-      segments: &self.segments[index..index + length],
-      colour,
-    }
-  }
-
-  /// Get an iterator over the [`Spline`]s in a given [`Contour`]
-  pub fn splines<'shape>(
-    &'shape self,
-    contour: Contour<'shape>,
-  ) -> impl Iterator<Item = Spline> + 'shape {
-    contour
-      .splines
-      .iter()
-      .map(|&spline_ref| self.get_spline(spline_ref))
-  }
-
-  /// Get an iterator over the [`Segment`]s in a given [`Spline`]
-  #[inline]
-  pub fn segments<'shape>(
-    &'shape self,
-    spline: Spline<'shape>,
-  ) -> impl Iterator<Item = Segment> + 'shape {
-    spline
-      .segments
-      .iter()
-      .map(|&segment_ref| self.get_segment(segment_ref))
-  }
-
-  pub fn contours<'shape>(
-    &'shape self,
-  ) -> impl Iterator<Item = Contour<'shape>> {
-    (0..self.contours.len()).map(|index| self.get_contour(index))
-  }
-}
-
+/*
 #[test]
   fn contour_get_spline_segments() {
     use super::*;
@@ -176,3 +111,4 @@ impl Shape {
       assert_eq!(result, expected);
     }
   }
+*/

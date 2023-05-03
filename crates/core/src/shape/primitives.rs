@@ -10,10 +10,7 @@ use crate::*;
 use arrayvec::ArrayVec;
 use std::ops::{Bound, RangeBounds};
 
-/// The kind of a segment
-///
-/// A `Segment` is constructed from a [`SegmentIndex`], where the `SegmentIndex`
-/// contains ([`SegmentKind`], `&[`[`Point`]`]`).
+/// The primitive type of a [`Segment`]
 #[derive(Debug, Clone, Copy)]
 pub enum SegmentKind {
   /// Line, consisting of 2 [`Point`] - starting, ending positions.
@@ -29,7 +26,11 @@ pub enum SegmentKind {
 impl Shape {
   /// Get a segment given a `SegmentRef`
   #[inline]
-  pub fn get_segment(&self, (kind, i): SegmentRef) -> Segment {
+  #[rustfmt::skip]
+  pub fn get_segment(
+    &self,
+    SegmentRef{kind, points_index: i}: SegmentRef
+  ) -> Segment {
     match kind {
       SegmentKind::Line => Segment::Line(&self.points[i..i + 2]),
       SegmentKind::QuadBezier => Segment::QuadBezier(&self.points[i..i + 3]),

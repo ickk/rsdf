@@ -28,28 +28,50 @@ fn gen() {
     (13., 15.).into(), // 10
   ];
 
+  use SegmentKind::*;
   let segments = vec![
     // contour_0
-    (SegmentKind::CubicBezier, 0), // 0
-    (SegmentKind::Line, 3),
-    (SegmentKind::QuadBezier, 4),
-    // contour_1
-    (SegmentKind::Line, 7), // 3
-    (SegmentKind::Line, 8),
-    (SegmentKind::Line, 9),
+    SegmentRef {
+      kind: CubicBezier,
+      points_index: 0,
+    }, // 0
+    SegmentRef {
+      kind: Line,
+      points_index: 3,
+    },
+    SegmentRef {
+      kind: QuadBezier,
+      points_index: 4,
+    },
+    // contour 1
+    SegmentRef {
+      kind: Line,
+      points_index: 7,
+    }, // 3
+    SegmentRef {
+      kind: Line,
+      points_index: 8,
+    },
+    SegmentRef {
+      kind: Line,
+      points_index: 9,
+    },
   ];
   let splines = vec![
     // contour_0
-    (1, 0, Magenta), // 0
-    (1, 1, Yellow),
-    (1, 2, Cyan),
+    Spline { segments_range: 0..1, colour: Magenta }, // 0
+    Spline { segments_range: 1..2, colour: Yellow },
+    Spline { segments_range: 2..3, colour: Cyan },
     // contour_1
-    (1, 3, Magenta), // 3
-    (1, 4, Yellow),
-    (1, 5, Cyan),
+    Spline { segments_range: 3..4, colour: Magenta },  // 3
+    Spline { segments_range: 4..5, colour: Yellow },
+    Spline { segments_range: 5..6, colour: Cyan },
   ];
 
-  let contours = vec![(3, 0), (3, 3)];
+  let contours = vec![
+    Contour{ spline_range: 0..3 },
+    Contour { spline_range: 3..6 }
+  ];
 
   let shape = Shape {
     points,
