@@ -6,13 +6,13 @@ Currently the core is capable of decomposing shapes made of lines, quadratic &
 cubic bezier curves, however there is still work to do to make it into a real
 tool.
 
-Example multichannel raster-SDF generated using this library:
+Example 30x30 pixel multichannel raster-SDF generated using this library:
 
-![raster-SDF example](./shape.png)
+![raster-SDF example](./rsdf.png)
 
-A 900x900 pixel image rendered using the above 30x30 pixel SDF image:
+A 900x900 pixel image rendered using the above SDF:
 
-![image rendered from raster-SDF](./shape_render.png)
+![image rendered from raster-SDF](./render.png)
 
 Future work:
 - [ ] implement additional primitives (arcs, b-splines, et c.)
