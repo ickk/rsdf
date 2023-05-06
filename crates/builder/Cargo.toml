@@ -5,3 +5,8 @@ edition = "2021"
 
 [dependencies]
 rsdf_core = { path = "../core" }
+float-cmp = "0.9"
+
+[dev-dependencies]
+png = "0.17"
+itertools = "0.10"
