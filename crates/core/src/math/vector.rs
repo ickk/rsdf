@@ -1,20 +1,57 @@
 use super::*;
 
 /// A vector in 2D space
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct Vector {
   pub x: f32,
   pub y: f32,
+}
+
+impl std::fmt::Debug for Vector {
+  fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    formatter
+      .debug_tuple("Vector")
+      .field(&self.x)
+      .field(&self.y)
+      .finish()
+  }
 }
 
 impl Vector {
   /// The zero vector
   pub const ZERO: Vector = Vector { x: 0., y: 0. };
 
-  /// The length of the vector
+  /// Vector constructor
+  pub fn new(x: f32, y: f32) -> Self {
+    Vector { x, y }
+  }
+
+  /// The length of the Vector
   #[inline]
   pub fn abs(self) -> f32 {
     (self.x * self.x + self.y * self.y).sqrt()
+  }
+
+  /// The length of the Vector
+  #[inline]
+  pub fn length(self) -> f32 {
+    (self.x * self.x + self.y * self.y).sqrt()
+  }
+
+  /// Wedge product of the pair of vectors
+  ///
+  /// Alias for Vector::signed_area
+  #[inline]
+  pub fn wedge(self, rhs: Vector) -> f32 {
+    self.signed_area(rhs)
+  }
+
+  /// Compute the angle between the pair of vectors
+  ///
+  /// The result is in the range (-PI, PI].
+  #[inline]
+  pub fn angle(self, rhs: Vector) -> f32 {
+    f32::atan2(self.wedge(rhs), self.dot(rhs))
   }
 
   /// Vector of unit length in the same direction
@@ -22,13 +59,13 @@ impl Vector {
   /// note: fails for the zero vector.
   #[inline]
   pub fn norm(self) -> Self {
-    self / self.abs()
+    self / self.length()
   }
 
   /// Create a vector pointing in the direction of the `end` from `start`
   #[inline]
   pub fn from_points(start: Point, end: Point) -> Self {
-    end.inner - start.inner
+    end - start
   }
 
   /// The dot product of a pair of vectors
@@ -60,7 +97,10 @@ impl Vector {
   /// vector
   #[inline]
   pub fn as_point(self) -> Point {
-    Point { inner: self }
+    Point {
+      x: self.x,
+      y: self.y,
+    }
   }
 }
 
@@ -152,7 +192,8 @@ impl std::ops::Add<Point> for Vector {
   #[inline]
   fn add(self, rhs: Point) -> Point {
     Point {
-      inner: self + rhs.inner,
+      x: self.x + rhs.x,
+      y: self.y + rhs.y,
     }
   }
 }
@@ -163,7 +204,8 @@ impl std::ops::Sub<Point> for Vector {
   #[inline]
   fn sub(self, rhs: Point) -> Point {
     Point {
-      inner: self - rhs.inner,
+      x: self.x - rhs.x,
+      y: self.y - rhs.y,
     }
   }
 }

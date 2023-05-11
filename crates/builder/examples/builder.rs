@@ -7,12 +7,26 @@ use std::fs::File;
 fn main() {
   let shape = ShapeBuilder::new()
     .contour((10., 20.))
-    .line((60., 10.))
+    // .line((60., 10.))
+    .elliptical_arc(22.5, 10., 0., false, true, (55., 20.))
+    // .elliptical_arc(25., 10., 0., false, true, (55., 20.))
     .line((50., 30.))
     .quadratic_bezier((40., 50.), (20., 30.))
     .line((10., 20.))
     .end_contour()
     .build();
+
+  let mut shape = ShapeBuilder::new()
+    .contour((30., 10.))
+    .elliptical_arc(10., 10., 0., true, true, (30., 10.))
+    .end_contour()
+    .build();
+
+
+
+  shape.points[4].y = std::f32::consts::PI;
+
+  dbg!(&shape);
 
   let Some(filename) = env::args().nth(1) else { panic!("No output filename given") };
   eprintln!("{filename:?}");
@@ -54,7 +68,7 @@ fn view(input_filename: &str, output_filename: &str) {
   let sdf_height = info.height as usize;
 
   let mut image =
-    Image::new(&output_filename, [sdf_width * 10, sdf_height * 10]);
+    Image::new(&output_filename, [sdf_width * 100, sdf_height * 100]);
 
   for y in 0..image.height {
     for x in 0..image.width {

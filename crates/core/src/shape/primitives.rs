@@ -1,8 +1,10 @@
 pub mod cubic_bezier;
+pub mod elliptical_arc;
 pub mod line;
 pub mod quad_bezier;
 
 pub use cubic_bezier::*;
+pub use elliptical_arc::*;
 pub use line::*;
 pub use quad_bezier::*;
 
@@ -21,6 +23,9 @@ pub enum SegmentKind {
   /// Degree 3 bezier curve, consisting of 4 [`Point`] - starting, control,
   /// ending positions.
   CubicBezier,
+  /// Elliptical arc, consists of 4 [`Points`]
+  /// - (centre_x, centre_y), (radius, aspect_ratio), (phi, _), (theta, delta)
+  EllipticalArc,
 }
 
 impl Shape {
@@ -35,6 +40,7 @@ impl Shape {
       SegmentKind::Line => Segment::Line(&self.points[i..i + 2]),
       SegmentKind::QuadBezier => Segment::QuadBezier(&self.points[i..i + 3]),
       SegmentKind::CubicBezier => Segment::CubicBezier(&self.points[i..i + 4]),
+      SegmentKind::EllipticalArc => Segment::EllipticalArc(&self.points[i..i+4]),
     }
   }
 }
@@ -45,6 +51,7 @@ pub enum Segment<'contour> {
   Line(&'contour [Point]),
   QuadBezier(&'contour [Point]),
   CubicBezier(&'contour [Point]),
+  EllipticalArc(&'contour [Point]),
 }
 
 impl Segment<'_> {
@@ -55,6 +62,7 @@ impl Segment<'_> {
       Segment::Line(ps) => Line::sample(ps, t),
       Segment::QuadBezier(ps) => QuadBezier::sample(ps, t),
       Segment::CubicBezier(ps) => CubicBezier::sample(ps, t),
+      Segment::EllipticalArc(ps) => EllipticalArc::sample(ps, t),
     }
   }
 
@@ -65,6 +73,7 @@ impl Segment<'_> {
       Segment::Line(ps) => Line::sample_derivative(ps, t),
       Segment::QuadBezier(ps) => QuadBezier::sample_derivative(ps, t),
       Segment::CubicBezier(ps) => CubicBezier::sample_derivative(ps, t),
+      Segment::EllipticalArc(ps) => EllipticalArc::sample_derivative(ps, t),
     }
   }
 
@@ -82,6 +91,9 @@ impl Segment<'_> {
       Segment::CubicBezier(ps) => {
         CubicBezier::pseudo_distance(ps, point, range)
       },
+      Segment::EllipticalArc(ps) => {
+        EllipticalArc::pseudo_distance(ps, point, range)
+      },
     }
   }
 
@@ -92,6 +104,7 @@ impl Segment<'_> {
       Segment::Line(ps) => Line::distance(ps, point),
       Segment::QuadBezier(ps) => QuadBezier::distance(ps, point),
       Segment::CubicBezier(ps) => CubicBezier::distance(ps, point),
+      Segment::EllipticalArc(ps) => EllipticalArc::distance(ps, point),
     }
   }
 }
@@ -106,14 +119,6 @@ pub trait Primitive {
   /// Return a tangent to the primitve at time `t`
   fn sample_derivative(ps: &[Point], t: f32) -> Vector;
 
-  /// Get the pseudo-distance from a point to the primitive at time `t`, where
-  /// `t` is contained within the given `range`
-  fn pseudo_distance<R: RangeBounds<f32> + Clone>(
-    ps: &[Point],
-    point: Point,
-    range: R,
-  ) -> (/* dist */ f32, /* t */ f32);
-
   /// Find when normals of the primitive intersect the given point, where the
   /// times returned fall within the given `range`
   fn find_normals<R: RangeBounds<f32> + Clone>(
@@ -121,6 +126,46 @@ pub trait Primitive {
     point: Point,
     range: R,
   ) -> Self::Ts;
+
+  /// Get the pseudo-distance from a point to the primitive at time `t`, where
+  /// `t` is contained within the given `range`
+  #[inline]
+  fn pseudo_distance<R: RangeBounds<f32> + Clone>(
+    ps: &[Point],
+    point: Point,
+    range: R,
+  ) -> (/* dist */ f32, /* t */ f32) {
+    let mut selected_t = 0.; // initial value doesn't matter
+    let mut selected_dist = f32::INFINITY;
+
+    // check perpendiculars
+    for t in Self::find_normals(ps, point, range.clone()) {
+      let dist = (point - Self::sample(ps, t)).abs();
+      if dist < selected_dist {
+        selected_dist = dist;
+        selected_t = t;
+      }
+    }
+
+    // check any end-points
+    let (start, end) = range_to_values(range);
+    if start.is_finite() {
+      let start_dist = (point - Self::sample(ps, start)).abs();
+      if start_dist < selected_dist {
+        selected_dist = start_dist;
+        selected_t = start;
+      }
+    }
+    if end.is_finite() {
+      let end_dist = (point - Self::sample(ps, end)).abs();
+      if end_dist < selected_dist {
+        selected_dist = end_dist;
+        selected_t = end;
+      }
+    }
+
+    (selected_dist, selected_t)
+  }
 
   /// Get the distance from a point to the primitive at time `t`
   #[inline]

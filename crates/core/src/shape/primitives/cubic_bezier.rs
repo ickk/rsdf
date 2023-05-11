@@ -25,44 +25,6 @@ impl Primitive for CubicBezier {
         * (ps[3].as_vector() - 3f32*ps[2].as_vector() + 3f32*ps[1].as_vector() - ps[0].as_vector())
   }
 
-  #[inline]
-  fn pseudo_distance<R: RangeBounds<f32> + Clone>(
-    ps: &[Point],
-    point: Point,
-    range: R,
-  ) -> (/* dist */ f32, /* t */ f32) {
-    let mut selected_t = 0.; // initial value doesn't matter
-    let mut selected_dist = f32::INFINITY;
-
-    // check perpendiculars
-    for t in Self::find_normals(ps, point, range.clone()) {
-      let dist = (point - Self::sample(ps, t)).abs();
-      if dist < selected_dist {
-        selected_dist = dist;
-        selected_t = t;
-      }
-    }
-
-    // check any end-points
-    let (start, end) = range_to_values(range);
-    if start.is_finite() {
-      let start_dist = (point - Self::sample(ps, start)).abs();
-      if start_dist < selected_dist {
-        selected_dist = start_dist;
-        selected_t = start;
-      }
-    }
-    if end.is_finite() {
-      let end_dist = (point - Self::sample(ps, end)).abs();
-      if end_dist < selected_dist {
-        selected_dist = end_dist;
-        selected_t = end;
-      }
-    }
-
-    (selected_dist, selected_t)
-  }
-
   #[rustfmt::skip]
   fn find_normals<R: RangeBounds<f32>>(
     ps: &[Point],

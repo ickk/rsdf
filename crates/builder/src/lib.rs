@@ -92,6 +92,43 @@ impl ContourBuilder {
     self
   }
 
+  pub fn elliptical_arc(
+    mut self,
+    rx: f32,
+    ry: f32,
+    phi: f32,
+    large_arc: bool,
+    sweep_ccw: bool,
+    end: impl Into<Point>,
+  ) -> Self {
+    let start = *self.shape.points.last().unwrap();
+    let end = end.into();
+    let endpoint = elliptical_arc::EndpointParam {
+      start,
+      rx,
+      ry,
+      phi,
+      large_arc,
+      sweep_ccw,
+      end,
+    };
+    let mut centre = elliptical_arc::CentreParam::from(endpoint);
+    // centre.delta += 0.01;
+    let centre_ps = centre.to_ps();
+
+    self.shape.points.push(centre_ps[0]);
+    self.shape.points.push(centre_ps[1]);
+    self.shape.points.push(centre_ps[2]);
+    self.shape.points.push(centre_ps[3]);
+    self.shape.points.push(end);
+    self.shape.segments.push(SegmentRef {
+      kind: SegmentKind::EllipticalArc,
+      points_index: self.shape.points.len() - 5,
+    });
+    self.check_for_and_create_new_spline();
+    self
+  }
+
   pub fn end_contour(mut self) -> ShapeBuilder {
     // finish spline
     self.current_spline.segments_range.end = self.shape.segments.len();

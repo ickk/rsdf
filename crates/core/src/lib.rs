@@ -10,7 +10,7 @@ use shape::*;
 pub use image::Image;
 pub use math::{Point, Vector};
 pub use shape::{
-  Colour, Colour::*, Contour, SegmentKind, SegmentRef, Shape, Spline,
+  Colour, Colour::*, Contour, SegmentKind, SegmentRef, Shape, Spline, primitives::elliptical_arc,
 };
 
 pub const MAX_DISTANCE: f32 = 5.;

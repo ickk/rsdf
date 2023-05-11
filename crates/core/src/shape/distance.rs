@@ -55,6 +55,7 @@ impl Shape {
 
     // If there's only one segment in this spline
     if segments_range.len() == 1 {
+      // println!("len=1");
       let segment_ref = self.segments[segments_range.start];
       let segment = self.get_segment(segment_ref);
 
@@ -67,18 +68,26 @@ impl Shape {
         (dist, t) = check_end_extension(segment, point, &mut extension_buf);
         segment_extended = true;
       }
-      if dist < selected_dist {
-        selected_dist = dist;
-        selected_t = t;
-        if segment_extended {
-          selected_segment = Some(Segment::Line(&extension_buf));
-        } else {
-          selected_segment = Some(segment);
-        }
+      // if dist < selected_dist {
+      //   selected_dist = dist;
+      //   selected_t = t;
+      //   if segment_extended {
+      //     selected_segment = Some(Segment::Line(&extension_buf));
+      //   } else {
+      //     selected_segment = Some(segment);
+      //   }
+      // }
+      selected_dist = dist;
+      selected_t = t;
+      if segment_extended {
+        selected_segment = Some(Segment::Line(&extension_buf));
+      } else {
+        selected_segment = Some(segment);
       }
     }
     // Otherwise we've got a multi-segment spline
     else {
+      println!("len>1");
       let mut extended = false;
 
       for (i, &segment_ref) in
