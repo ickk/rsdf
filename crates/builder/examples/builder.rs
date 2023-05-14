@@ -4,27 +4,108 @@ use rsdf_core::*;
 use std::env;
 use std::fs::File;
 
+// <path d="M300,200 h-150 a150,150 0 1,0 150,-150 z"
+// fill="red" stroke="blue" stroke-width="5" />
+// <path d="M275,175 v-150 a150,150 0 0,0 -150,150 z"
+// fill="yellow" stroke="blue" stroke-width="5" />
+
 fn main() {
-  let shape = ShapeBuilder::new()
-    .contour((10., 20.))
-    // .line((60., 10.))
-    .elliptical_arc(22.5, 10., 0., false, true, (55., 20.))
-    // .elliptical_arc(25., 10., 0., false, true, (55., 20.))
-    .line((50., 30.))
-    .quadratic_bezier((40., 50.), (20., 30.))
-    .line((10., 20.))
+  let mut shape = ShapeBuilder::new()
+    .contour((20., 20.))
+    .line((20., 30.))
+    .elliptical_arc(10., 10., 0., false, true, (10., 20.))
+    .line((20., 20.))
+    .end_contour()
+    .build();
+
+  use std::f32::consts::{PI, SQRT_2};
+
+  let mut shape = ShapeBuilder::new()
+    .contour((20., 20.))
+    .line((20., 30.))
+    .elliptical_arc(
+      10.,
+      10.,
+      0.,
+      false,
+      true,
+      (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+    )
+    .line((20., 20.))
+    .end_contour()
+    .build();
+
+  // let mut shape = ShapeBuilder::new()
+  //   .contour((20., 20.))
+  //   // .line((20., 30.))
+  //   // .line((10., 20.))
+  //   .line((20., 10.))
+  //   .elliptical_arc(
+  //     10.,
+  //     10.,
+  //     0.,
+  //     true,
+  //     true,
+  //     // (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+  //     // (30., 20.)
+  //     // (20., 10.)
+  //     (10., 20.),
+  //     // (30., 20.),
+  //   )
+  //   // .line((30., 20.))
+  //   // .elliptical_arc(10., 10., 0., false, true, (30., 20.))
+  //   .line((20., 20.))
+  //   .end_contour()
+  //   .build();
+
+  let mut shape = ShapeBuilder::new()
+    .contour((20., 20.))
+    .line((20., 30.))
+    .elliptical_arc(
+      10.,
+      10.,
+      0.,
+      true,
+      true,
+      // (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+      // (20., 10.),
+      // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+      // (30., 20.),
+      (20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.),
+    )
+    .line((20., 20.))
     .end_contour()
     .build();
 
   let mut shape = ShapeBuilder::new()
-    .contour((30., 10.))
-    .elliptical_arc(10., 10., 0., true, true, (30., 10.))
-    .end_contour()
-    .build();
-
-
-
-  shape.points[4].y = std::f32::consts::PI;
+  .contour((20., 20.))
+  .line((20., 30.))
+  .elliptical_arc(
+    10.,
+    10.,
+    0.,
+    false,
+    true,
+    (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+    // (20., 10.),
+    // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+    // (30., 20.)
+  )
+  .elliptical_arc(
+    10.,
+    10.,
+    0.,
+    false,
+    true,
+    // (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+    // (20., 10.),
+    // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+    // (30., 20.)
+    (20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.)
+  )
+  .line((20., 20.))
+  .end_contour()
+  .build();
 
   dbg!(&shape);
 
@@ -68,7 +149,7 @@ fn view(input_filename: &str, output_filename: &str) {
   let sdf_height = info.height as usize;
 
   let mut image =
-    Image::new(&output_filename, [sdf_width * 100, sdf_height * 100]);
+    Image::new(&output_filename, [sdf_width * 10, sdf_height * 10]);
 
   for y in 0..image.height {
     for x in 0..image.width {

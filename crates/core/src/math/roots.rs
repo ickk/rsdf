@@ -32,18 +32,18 @@ pub fn halleys_method(
 ) -> f32 {
   for _ in 0..100 {
     let fx = f(x);
-    if fx.abs() < 0.0001 {
+    if fx.abs() < 0.001 {
       return x;
     }
     let dfx = df(x);
     let ddfx = ddf(x);
-    let denom = (2. * dfx * dfx - fx * ddfx);
-    if float_cmp::approx_eq!(f32, denom, 0f32) {
-      dbg!(x, fx, dfx, ddfx, denom);
-    }
+    // let denom = 2. * dfx * dfx - fx * ddfx;
+    // if float_cmp::approx_eq!(f32, denom, 0f32) {
+    //    dbg!(x, fx, dfx, ddfx, denom);
+    // }
     x -= (2. * fx * dfx) / (2. * dfx * dfx - fx * ddfx);
   }
-  println!("");
+  dbg!(x);
   x
 }
 

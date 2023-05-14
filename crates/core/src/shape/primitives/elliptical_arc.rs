@@ -114,6 +114,8 @@ impl CentreParam {
 
   /// Sample the ellipse described by the parameters: `centre`, `r`, `k`, `phi`
   /// at the given pseudo_angle.
+  ///
+  /// Note: does not take `theta` or `delta` into account.
   pub fn sample_ellipse(&self, angle: f32) -> Point {
     let ry = self.k * self.r;
     let (phi_sin, phi_cos) = self.phi.sin_cos();
@@ -126,6 +128,8 @@ impl CentreParam {
 
   /// Sample the derivative of the ellipse described by the parameters:
   /// `centre`, `r`, `k`, `phi` at the given pseudo_angle
+  ///
+  /// Note: does not take `theta` or `delta` into account.
   pub fn sample_ellipse_derivative(&self, angle: f32) -> Vector {
     let ry = self.k * self.r;
     let (phi_sin, phi_cos) = self.phi.sin_cos();
@@ -138,7 +142,10 @@ impl CentreParam {
 
   /// Find the pseudo angle of the ellipse where a normal points in the
   /// direction of the given `Point`
-  pub fn find_normals(&self, point: Point) -> [f32; 2] {
+  ///
+  /// Note: does not take `theta` or `delta` into account. Just returns angles
+  /// for the ellipse itself.
+  pub fn find_normals(&self, point: Point) -> [f32; 6] {
     // Much like the beziers, we need to find the zeros of the equation:
     //   N(t) = (p(t) - P) dot dp/dt
     // where t_0  N(t_0) = 0 is the pseudo angle of the ellipse that is
@@ -165,19 +172,22 @@ impl CentreParam {
       (halleys_method((guess + PI) % TAU, f, df, ddf) % TAU + TAU) % TAU;
 
     if t0.is_nan() {
-      println!("t0.is_nan(): {:?}", t0.is_nan());
-      dbg!(t0, t1, guess, m, n, o);
+      // println!("t0.is_nan(): {:?}", t0.is_nan());
+      // dbg!(t0, t1, guess, m, n, o);
     }
     // assert!(!t0.is_nan());
     // assert!(t0.is_finite());
     if t1.is_nan() {
-      println!("t1.is_nan(): {:?}", t1.is_nan());
-      dbg!(t0, t1, guess, m, n, o);
+      // println!("t1.is_nan(): {:?}", t1.is_nan());
+      // dbg!(t0, t1, guess, m, n, o);
     }
     // assert!(!t1.is_nan());
     // assert!(t1.is_finite());
 
-    [t0, t1]
+    // this is ugly but we need to make sure we include the extra roots incase
+    // there's a positive or negative offset for the arc
+    [t0, t1, t0 + TAU, t1 + TAU, t0 - TAU, t1 - TAU]
+    // [t0, t1]
   }
 }
 
@@ -209,7 +219,7 @@ impl From<CentreParam> for EndpointParam {
 }
 
 impl From<EndpointParam> for CentreParam {
-  fn from(endpoint @
+  fn from(
     EndpointParam {
       start,
       rx,
@@ -223,7 +233,7 @@ impl From<EndpointParam> for CentreParam {
     // conversion algorithm: https://www.w3.org/TR/SVG/implnote.html
     // with patches from:
     // https://mortoray.com/rendering-an-svg-elliptical-arc-as-bezier-curves/
-    dbg!(endpoint);
+    // dbg!(endpoint);
     let (p0, p1) = (start, end);
     let (mut rx, mut ry) = (rx.abs(), ry.abs());
     let (phi_sin, phi_cos) = phi.sin_cos();
@@ -249,7 +259,7 @@ impl From<EndpointParam> for CentreParam {
       x: p0_prime.x * p0_prime.x,
       y: p0_prime.y * p0_prime.y,
     };
-    dbg!(rx_2, ry_2, p0_prime);
+    // dbg!(rx_2, ry_2, p0_prime);
     {
       let cr = p0_prime_2.x / rx_2 + p0_prime_2.y / ry_2;
       if cr > 1. {
@@ -263,7 +273,7 @@ impl From<EndpointParam> for CentreParam {
     let q = {
       let dq = rx_2 * p0_prime_2.y + ry_2 * p0_prime_2.x;
       let mut pq = (rx_2 * ry_2 - dq) / dq;
-      dbg!(dq, pq);
+      // dbg!(dq, pq);
       if pq.is_infinite() {
         pq = 0.;
       }
@@ -275,7 +285,7 @@ impl From<EndpointParam> for CentreParam {
       x: q * rx * p0_prime.y / ry,
       y: -q * ry * p0_prime.x / rx,
     };
-    dbg!(rx, ry, c_prime, q, p0_prime);
+    // dbg!(rx, ry, c_prime, q, p0_prime);
     let centre = Point {
       x: phi_cos * c_prime.x - phi_sin * c_prime.y + (p0.x + p1.x) / 2.,
       y: phi_sin * c_prime.x + phi_cos * c_prime.y + (p0.y + p1.y) / 2.,
@@ -312,7 +322,7 @@ impl From<EndpointParam> for CentreParam {
 }
 
 impl Primitive for EllipticalArc {
-  type Ts = ArrayVec<f32, 2>;
+  type Ts = ArrayVec<f32, 6>;
 
   #[inline]
   fn sample(ps: &[Point], t: f32) -> Point {
@@ -332,13 +342,20 @@ impl Primitive for EllipticalArc {
   fn find_normals<R: RangeBounds<f32> + Clone>(
     ps: &[Point],
     point: Point,
-    range: R,
-  ) -> ArrayVec<f32, 2> {
+    _range: R,
+  ) -> Self::Ts {
+    // I hate this
+    let range = 0f32..=1f32;
+
+    // let range = start..=end;
     let params = CentreParam::from_ps(ps);
     params
       .find_normals(point)
       .iter()
-      .map(|t| (t - params.theta) / params.delta)
+      .map(|angle| {
+        // dbg!(angle);
+        (angle - params.theta) / params.delta
+      })
       .filter(|t| range.contains(t))
       .collect()
   }
@@ -461,6 +478,28 @@ mod tests {
       };
       assert_approx_eq!(EndpointParam, endpoint, expected);
     }
+    {
+      // special case: starting and ending angle result in coincident points
+      let centre = CentreParam {
+        centre: (2., 2.).into(),
+        r: 1.,
+        k: 1.,
+        phi: 0f32,
+        theta: 0f32,
+        delta: TAU,
+      };
+      let endpoint = EndpointParam::from(centre);
+      let expected = EndpointParam {
+        start: (3., 2.).into(),
+        rx: 1.,
+        ry: 1.,
+        phi: 0f32,
+        large_arc: true,
+        sweep_ccw: true,
+        end: (3., 2.).into(),
+      };
+      assert_approx_eq!(EndpointParam, endpoint, expected);
+    }
   }
 
   #[test]
@@ -550,6 +589,30 @@ mod tests {
       };
       assert_approx_eq!(CentreParam, centre, expected);
     }
+    // TODO:
+    // {
+    //   // special case: starting and ending are coincident
+    //   // there's infinite solutions based on the endpoint parameterisation..
+    //   let endpoint = EndpointParam {
+    //     start: (3., 2.).into(),
+    //     rx: 1.,
+    //     ry: 1.,
+    //     phi: 0f32,
+    //     large_arc: true,
+    //     sweep_ccw: true,
+    //     end: (3., 2.).into(),
+    //   };
+    //   let centre = CentreParam::from(endpoint);
+    //   let expected = CentreParam {
+    //     centre: (2., 2.).into(),
+    //     r: 1.,
+    //     k: 1.,
+    //     phi: 0f32,
+    //     theta: 0f32,
+    //     delta: TAU,
+    //   };
+    //   assert_approx_eq!(CentreParam, centre, expected);
+    // }
   }
 
   #[test]
@@ -565,15 +628,27 @@ mod tests {
         delta: 0f32,
       };
       let point = Point::from((2., 0.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[PI, 0f32]);
 
       let point = Point::from((0., 2.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[3. * PI / 2., PI / 2.]);
 
       let point = Point::from((1., 1.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[5. * PI / 4., PI / 4.]);
     }
 
@@ -587,15 +662,27 @@ mod tests {
         delta: 0f32,
       };
       let point = Point::from((2., 0.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[3. * PI / 4., 7. * PI / 4.]);
 
       let point = Point::from((0., 2.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[5. * PI / 4., PI / 4.]);
 
       let point = Point::from((1., 1.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[PI, 0f32]);
     }
 
@@ -609,16 +696,395 @@ mod tests {
         delta: 0f32,
       };
       let point = Point::from((3., 2.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[PI, 0f32]);
 
       let point = Point::from((1., 4.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[3. * PI / 2., PI / 2.]);
 
       let point = Point::from((2., 3.));
-      let ts = circle.find_normals(point);
+      let ts: Vec<_> = circle
+        .find_normals(point)
+        .into_iter()
+        .filter(|t| (0f32..TAU).contains(t))
+        .collect();
       assert_approx_eq!(&[f32], &ts, &[5. * PI / 4., PI / 4.]);
+    }
+  }
+
+  #[test]
+  fn params_sample_ellipse() {
+    use super::*;
+    {
+      let params = CentreParam {
+        centre: Point::new(20., 20.),
+        r: 10.,
+        k: 1.,
+        phi: 0.,
+        // CentreParam::sample_ellipse doesn't use these values
+        theta: f32::NAN,
+        delta: f32::NAN,
+      };
+
+      {
+        let angle = 0.;
+        let sample = params.sample_ellipse(angle);
+        let expected_sample = Point::new(30., 20.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = PI / 4.;
+        let sample = params.sample_ellipse(angle);
+        let expected_sample =
+          Point::new(20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = PI / 2.;
+        let sample = params.sample_ellipse(angle);
+        let expected_sample = Point::new(20., 30.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = PI;
+        let sample = params.sample_ellipse(angle);
+        let expected_sample = Point::new(10., 20.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = 3. * PI / 2.;
+        let sample = params.sample_ellipse(angle);
+        let expected_sample = Point::new(20., 10.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = TAU;
+        let sample = params.sample_ellipse(angle);
+        let expected_sample = Point::new(30., 20.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = TAU + PI;
+        let sample = params.sample_ellipse(angle);
+        let expected_sample = Point::new(10., 20.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = -PI;
+        let sample = params.sample_ellipse(angle);
+        let expected_sample = Point::new(10., 20.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+    }
+  }
+
+  #[test]
+  fn params_sample_ellipse_derivative() {
+    use super::*;
+    {
+      let params = CentreParam {
+        centre: Point::new(2., 2.),
+        r: 1.,
+        k: 1.,
+        phi: 0.,
+        // CentreParam::sample_ellipse_derivative doesn't use these values
+        theta: f32::NAN,
+        delta: f32::NAN,
+      };
+
+      {
+        let angle = 0.;
+        let sample = params.sample_ellipse_derivative(angle);
+        let expected_sample = Vector::new(0., 1.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = PI / 4.;
+        let sample = params.sample_ellipse_derivative(angle);
+        let expected_sample = Vector::new(-SQRT_2 / 2., SQRT_2 / 2.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = PI / 2.;
+        let sample = params.sample_ellipse_derivative(angle);
+        let expected_sample = Vector::new(-1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = PI;
+        let sample = params.sample_ellipse_derivative(angle);
+        let expected_sample = Vector::new(0., -1.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = 3. * PI / 2.;
+        let sample = params.sample_ellipse_derivative(angle);
+        let expected_sample = Vector::new(1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = TAU;
+        let sample = params.sample_ellipse_derivative(angle);
+        let expected_sample = Vector::new(0., 1.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = TAU + PI;
+        let sample = params.sample_ellipse_derivative(angle);
+        let expected_sample = Vector::new(0., -1.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+
+      {
+        let angle = -PI;
+        let sample = params.sample_ellipse_derivative(angle);
+        let expected_sample = Vector::new(0., -1.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+    }
+  }
+
+  #[test]
+  fn params_sample() {
+    use super::*;
+    {
+      let ps: [Point; 4] = [
+        (2., 2.).into(),            // centre
+        (1f32, 1f32).into(),        // r, k
+        (PI / 4., f32::NAN).into(), // phi, _
+        (PI / 4., PI).into(),       // theta, delta
+      ];
+      {
+        let t = 0.;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(2., 3.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 1.;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(2., 1.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 0.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(1., 2.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -0.25;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(2. + SQRT_2 / 2., 2. + SQRT_2 / 2.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 1.25;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(2. + SQRT_2 / 2., 2. - SQRT_2 / 2.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 2.;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(2., 3.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -2.;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(2., 3.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+    }
+    {
+      let ps: [Point; 4] = [
+        (0., 0.).into(),           // centre
+        (1f32, 2f32).into(),       // r, k
+        (0., f32::NAN).into(),     // phi, _
+        (PI / 4., PI / 2.).into(), // theta, delta
+      ];
+      {
+        let t = 0.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(0., 2.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 1.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(-1., 0.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 2.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(0., -2.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 3.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(1., 0.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -0.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(1., 0.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -1.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(0., -2.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -2.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(-1., 0.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -3.5;
+        let sample = EllipticalArc::sample(&ps, t);
+        let expected_sample = Point::new(0., 2.);
+        assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+      }
+    }
+  }
+
+  #[test]
+  fn params_sample_derivative() {
+    use super::*;
+    {
+      let ps: [Point; 4] = [
+        (2., 2.).into(),            // centre
+        (1f32, 1f32).into(),        // r, k
+        (PI / 4., f32::NAN).into(), // phi, _
+        (PI / 4., PI).into(),       // theta, delta
+      ];
+      {
+        let t = 0.;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(-1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 1.;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 0.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(0., -1.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -0.25;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(-SQRT_2 / 2., SQRT_2 / 2.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 1.25;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(SQRT_2 / 2., SQRT_2 / 2.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 2.;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(-1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -2.;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(-1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+    }
+    {
+      let ps: [Point; 4] = [
+        (0., 0.).into(),           // centre
+        (1f32, 2f32).into(),       // r, k
+        (0., f32::NAN).into(),     // phi, _
+        (PI / 4., PI / 2.).into(), // theta, delta
+      ];
+      {
+        let t = 0.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(-1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 1.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(0., -2.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 2.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = 3.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(0., 2.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -0.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(0., 2.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -1.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -2.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(0., -2.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
+      {
+        let t = -3.5;
+        let sample = EllipticalArc::sample_derivative(&ps, t);
+        let expected_sample = Vector::new(-1., 0.);
+        assert_approx_eq!(Vector, sample, expected_sample, epsilon = 0.001);
+      }
     }
   }
 
@@ -639,6 +1105,10 @@ mod tests {
 
       let point = Point::from((0., 2.));
       let ts = EllipticalArc::find_normals(&ps, point, 0f32..=1f32);
+      assert_approx_eq!(&[f32], &ts, &[0.5]);
+
+      let point = Point::from((0., 2.));
+      let ts = EllipticalArc::find_normals(&ps, point, 0f32..=2f32);
       assert_approx_eq!(&[f32], &ts, &[0.5]);
 
       let point = Point::from((1., 1.));
@@ -666,5 +1136,47 @@ mod tests {
       let ts = EllipticalArc::find_normals(&ps, point, 0f32..=1f32);
       assert_approx_eq!(&[f32], &ts, &[0.75]);
     }
+
+    {
+      // edge case: theta + delta > TAU
+      let ps: [Point; 4] = [
+        (0f32, 0f32).into(),     // centre
+        (1f32, 1f32).into(),     // r, k
+        (0f32, f32::NAN).into(), // phi, _
+        (PI, TAU).into(),        // theta, delta
+      ];
+
+      let point = Point::from((2., 0.));
+      let ts = EllipticalArc::find_normals(&ps, point, 0f32..=1f32);
+      assert_approx_eq!(&[f32], &ts, &[0., 1., 0.5]);
+    }
+  }
+
+  // #[test]
+  fn sample() {
+    use super::*;
+    let ps = [
+      Point::new(20., 20.),
+      Point::new(10., 1.),
+      Point::new(0., f32::NAN),
+      Point::new(-PI / 2., PI / 2.),
+    ];
+    let params = CentreParam::from_ps(&ps);
+    let sample = EllipticalArc::sample(&ps, 0.5);
+    let expected_sample =
+      Point::new((2. + SQRT_2 / 2.) * 10., (2. - SQRT_2 / 2.) * 10.);
+    assert_approx_eq!(Point, sample, expected_sample, epsilon = 0.001);
+
+    // todo: check distance at this point
+    let point = Point::new(30., 10.);
+    println!("========");
+    let (dist, t) = EllipticalArc::pseudo_distance(&ps, point, ..);
+    dbg!(dist, t);
+    println!("=======");
+    let expected_dist = (Point::new(30., 10.) - expected_sample).length();
+
+    // TODO: t is sus
+
+    assert_approx_eq!(f32, dist, expected_dist);
   }
 }

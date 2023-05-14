@@ -10,7 +10,8 @@ use shape::*;
 pub use image::Image;
 pub use math::{Point, Vector};
 pub use shape::{
-  Colour, Colour::*, Contour, SegmentKind, SegmentRef, Shape, Spline, primitives::elliptical_arc,
+  primitives::elliptical_arc, Colour, Colour::*, Contour, SegmentKind,
+  SegmentRef, Shape, Spline,
 };
 
 pub const MAX_DISTANCE: f32 = 5.;
@@ -23,4 +24,11 @@ pub const MAX_COLOUR: f32 = 256.0;
 pub fn distance_color(distance: f32) -> u8 {
   let distance = distance.clamp(-MAX_DISTANCE, MAX_DISTANCE);
   (((distance + MAX_DISTANCE) / (2.0 * MAX_DISTANCE) * MAX_COLOUR) - 1.0) as u8
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Bias {
+  Start,
+  End,
+  Centre,
 }
