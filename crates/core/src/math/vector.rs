@@ -168,7 +168,6 @@ impl std::ops::Sub<Point> for Vector {
   }
 }
 
-#[cfg(any(test, doc_test))]
 impl float_cmp::ApproxEq for Vector {
   type Margin = float_cmp::F32Margin;
 
