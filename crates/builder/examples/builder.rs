@@ -10,102 +10,46 @@ use std::fs::File;
 // fill="yellow" stroke="blue" stroke-width="5" />
 
 fn main() {
-  let mut shape = ShapeBuilder::new()
-    .contour((20., 20.))
-    .line((20., 30.))
-    .elliptical_arc(10., 10., 0., false, true, (10., 20.))
-    .line((20., 20.))
-    .end_contour()
-    .build();
-
-  use std::f32::consts::{PI, SQRT_2};
-
-  let mut shape = ShapeBuilder::new()
+  use std::f32::consts::SQRT_2;
+  let shape = ShapeBuilder::new()
     .contour((20., 20.))
     .line((20., 30.))
     .elliptical_arc(
       10.,
-      10.,
-      0.,
+      20.,
+      1.0,
+      true,
       false,
-      true,
       (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-    )
-    .line((20., 20.))
-    .end_contour()
-    .build();
-
-  // let mut shape = ShapeBuilder::new()
-  //   .contour((20., 20.))
-  //   // .line((20., 30.))
-  //   // .line((10., 20.))
-  //   .line((20., 10.))
-  //   .elliptical_arc(
-  //     10.,
-  //     10.,
-  //     0.,
-  //     true,
-  //     true,
-  //     // (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-  //     // (30., 20.)
-  //     // (20., 10.)
-  //     (10., 20.),
-  //     // (30., 20.),
-  //   )
-  //   // .line((30., 20.))
-  //   // .elliptical_arc(10., 10., 0., false, true, (30., 20.))
-  //   .line((20., 20.))
-  //   .end_contour()
-  //   .build();
-
-  let mut shape = ShapeBuilder::new()
-    .contour((20., 20.))
-    .line((20., 30.))
-    .elliptical_arc(
-      10.,
-      10.,
-      0.,
-      true,
-      true,
-      // (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
       // (20., 10.),
       // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
       // (30., 20.),
-      (20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.),
+      // (20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.),
     )
     .line((20., 20.))
     .end_contour()
     .build();
 
-  let mut shape = ShapeBuilder::new()
-  .contour((20., 20.))
-  .line((20., 30.))
-  .elliptical_arc(
-    10.,
-    10.,
-    0.,
-    false,
-    true,
-    (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-    // (20., 10.),
-    // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-    // (30., 20.)
-  )
-  .elliptical_arc(
-    10.,
-    10.,
-    0.,
-    false,
-    true,
-    // (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-    // (20., 10.),
-    // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-    // (30., 20.)
-    (20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.)
-  )
-  .line((20., 20.))
-  .end_contour()
-  .build();
+  let shape = ShapeBuilder::new()
+    .contour((20., 20.))
+    .line((20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.))
+    .elliptical_arc(
+      10.,
+      20.,
+      1.0,
+      true,
+      // false,
+      // false,
+      true,
+      (20., 30.),
+      // (20., 10.),
+      // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
+      // (30., 20.),
+      // (20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.),
+    )
+    .line((20., 20.))
+    .end_contour()
+    .build();
 
   dbg!(&shape);
 

@@ -145,7 +145,7 @@ impl CentreParam {
   ///
   /// Note: does not take `theta` or `delta` into account. Just returns angles
   /// for the ellipse itself.
-  pub fn find_normals(&self, point: Point) -> [f32; 6] {
+  pub fn find_normals(&self, point: Point) -> [f32; 8] {
     // Much like the beziers, we need to find the zeros of the equation:
     //   N(t) = (p(t) - P) dot dp/dt
     // where t_0  N(t_0) = 0 is the pseudo angle of the ellipse that is
@@ -171,22 +171,9 @@ impl CentreParam {
     let t1 =
       (halleys_method((guess + PI) % TAU, f, df, ddf) % TAU + TAU) % TAU;
 
-    if t0.is_nan() {
-      // println!("t0.is_nan(): {:?}", t0.is_nan());
-      // dbg!(t0, t1, guess, m, n, o);
-    }
-    // assert!(!t0.is_nan());
-    // assert!(t0.is_finite());
-    if t1.is_nan() {
-      // println!("t1.is_nan(): {:?}", t1.is_nan());
-      // dbg!(t0, t1, guess, m, n, o);
-    }
-    // assert!(!t1.is_nan());
-    // assert!(t1.is_finite());
-
     // this is ugly but we need to make sure we include the extra roots incase
     // there's a positive or negative offset for the arc
-    [t0, t1, t0 + TAU, t1 + TAU, t0 - TAU, t1 - TAU]
+    [t0, t1, t0 + TAU, t1 + TAU, t0 - TAU, t1 - TAU, t0 - 2. * TAU, t1 - 2. * TAU]
     // [t0, t1]
   }
 }
@@ -233,7 +220,6 @@ impl From<EndpointParam> for CentreParam {
     // conversion algorithm: https://www.w3.org/TR/SVG/implnote.html
     // with patches from:
     // https://mortoray.com/rendering-an-svg-elliptical-arc-as-bezier-curves/
-    // dbg!(endpoint);
     let (p0, p1) = (start, end);
     let (mut rx, mut ry) = (rx.abs(), ry.abs());
     let (phi_sin, phi_cos) = phi.sin_cos();
@@ -259,7 +245,6 @@ impl From<EndpointParam> for CentreParam {
       x: p0_prime.x * p0_prime.x,
       y: p0_prime.y * p0_prime.y,
     };
-    // dbg!(rx_2, ry_2, p0_prime);
     {
       let cr = p0_prime_2.x / rx_2 + p0_prime_2.y / ry_2;
       if cr > 1. {
@@ -273,7 +258,6 @@ impl From<EndpointParam> for CentreParam {
     let q = {
       let dq = rx_2 * p0_prime_2.y + ry_2 * p0_prime_2.x;
       let mut pq = (rx_2 * ry_2 - dq) / dq;
-      // dbg!(dq, pq);
       if pq.is_infinite() {
         pq = 0.;
       }
@@ -285,7 +269,6 @@ impl From<EndpointParam> for CentreParam {
       x: q * rx * p0_prime.y / ry,
       y: -q * ry * p0_prime.x / rx,
     };
-    // dbg!(rx, ry, c_prime, q, p0_prime);
     let centre = Point {
       x: phi_cos * c_prime.x - phi_sin * c_prime.y + (p0.x + p1.x) / 2.,
       y: phi_sin * c_prime.x + phi_cos * c_prime.y + (p0.y + p1.y) / 2.,
@@ -310,6 +293,7 @@ impl From<EndpointParam> for CentreParam {
       };
       delta
     };
+
     CentreParam {
       centre,
       r: rx,
@@ -335,7 +319,9 @@ impl Primitive for EllipticalArc {
   fn sample_derivative(ps: &[Point], t: f32) -> Vector {
     let params = CentreParam::from_ps(ps);
     let angle = params.theta + t * params.delta;
-    params.sample_ellipse_derivative(angle)
+    // we must negate the derivative when the curve is reversed.
+    let sign = 1f32.copysign(params.delta);
+    params.sample_ellipse_derivative(angle) * sign
   }
 
   #[inline]
@@ -347,13 +333,11 @@ impl Primitive for EllipticalArc {
     // I hate this
     let range = 0f32..=1f32;
 
-    // let range = start..=end;
     let params = CentreParam::from_ps(ps);
     params
       .find_normals(point)
       .iter()
       .map(|angle| {
-        // dbg!(angle);
         (angle - params.theta) / params.delta
       })
       .filter(|t| range.contains(t))

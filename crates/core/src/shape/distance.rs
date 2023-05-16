@@ -37,6 +37,8 @@ impl Shape {
     // kind of redundant
     let signed_dist = selected_dist.copysign(orthogonality);
 
+    // this bias corrects artifacts caused by the pseudo-distance of a spline
+    // looping back on itself
     let bias = if selected_t <= 0f32 {
       Bias::Start
     } else if selected_t >= 1f32 {

@@ -30,20 +30,15 @@ pub fn halleys_method(
   df: impl Fn(f32) -> f32,
   ddf: impl Fn(f32) -> f32,
 ) -> f32 {
-  for _ in 0..100 {
+  for _ in 0..16 {
     let fx = f(x);
     if fx.abs() < 0.001 {
       return x;
     }
     let dfx = df(x);
     let ddfx = ddf(x);
-    // let denom = 2. * dfx * dfx - fx * ddfx;
-    // if float_cmp::approx_eq!(f32, denom, 0f32) {
-    //    dbg!(x, fx, dfx, ddfx, denom);
-    // }
     x -= (2. * fx * dfx) / (2. * dfx * dfx - fx * ddfx);
   }
-  dbg!(x);
   x
 }
 
