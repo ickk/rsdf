@@ -8,7 +8,6 @@ type Dist = (/* distance */ f32, /* orthogonality */ f32);
 
 impl Shape {
   /// Sample the signed distance of the shape at the given [`Point`]
-
   pub fn sample_single_channel(&self, point: Point) -> f32 {
     let mut selected_dist: Dist = (INFINITY, NEG_INFINITY);
 
@@ -18,7 +17,7 @@ impl Shape {
         colour: _,
       } in self.splines[contour.spline_range.clone()].iter()
       {
-        let dist =
+        let (dist, _) =
           self.spline_distance_orthogonality(segments_range.clone(), point);
         if closer(dist, selected_dist) {
           selected_dist = dist;
@@ -43,29 +42,26 @@ impl Shape {
         colour,
       } in self.splines[spline_range.clone()].iter().cloned()
       {
-        let dist =
+        let (dist, bias) =
           self.spline_distance_orthogonality(segments_range.clone(), point);
-
         if (colour & Red == Red) && closer(dist, red_dist) {
           red_dist = dist;
-          red_spline = Some(segments_range.clone());
+          red_spline = Some((segments_range.clone(), bias));
         }
-
         if (colour & Green == Green) && closer(dist, green_dist) {
           green_dist = dist;
-          green_spline = Some(segments_range.clone());
+          green_spline = Some((segments_range.clone(), bias));
         }
-
         if (colour & Blue == Blue) && closer(dist, blue_dist) {
           blue_dist = dist;
-          blue_spline = Some(segments_range.clone());
+          blue_spline = Some((segments_range.clone(), bias));
         }
       }
     }
 
     [red_spline, green_spline, blue_spline].map(|r| {
-      r.map_or(NEG_INFINITY, |spline| {
-        self.spline_pseudo_distance(spline, point)
+      r.map_or(NEG_INFINITY, |(spline, bias)| {
+        self.spline_pseudo_distance(spline, point, bias)
       })
     })
   }

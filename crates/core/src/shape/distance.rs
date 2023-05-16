@@ -8,7 +8,7 @@ impl Shape {
     &self,
     segments_range: Range<usize>,
     point: Point,
-  ) -> (/* dist */ f32, /* orth */ f32) {
+  ) -> ((/* dist */ f32, /* orth */ f32), /* end_bias */ Bias) {
     let mut selected_dist = f32::INFINITY;
     // initial values don't matter since the first distance will always be set
     let mut selected_segment = None;
@@ -37,7 +37,17 @@ impl Shape {
     // kind of redundant
     let signed_dist = selected_dist.copysign(orthogonality);
 
-    (signed_dist, orthogonality.abs())
+    // this bias corrects artifacts caused by the pseudo-distance of a spline
+    // looping back on itself
+    let bias = if selected_t <= 0f32 {
+      Bias::Start
+    } else if selected_t >= 1f32 {
+      Bias::End
+    } else {
+      Bias::Centre
+    };
+
+    ((signed_dist, orthogonality.abs()), bias)
   }
 
   /// Calculate the signed pseudo distance of a [`Point`] from a [`Spline`]
@@ -45,84 +55,54 @@ impl Shape {
     &self,
     segments_range: Range<usize>,
     point: Point,
+    bias: Bias,
   ) -> f32 {
     let mut selected_dist = f32::INFINITY;
     let mut selected_segment = None;
     let mut selected_t = f32::NAN;
-    // A place to store the points of extension lines if we need to construct
-    // them.
-    let mut extension_buf = [Point::ZERO; 2];
-
     // If there's only one segment in this spline
     if segments_range.len() == 1 {
       let segment_ref = self.segments[segments_range.start];
       let segment = self.get_segment(segment_ref);
 
-      let (mut dist, mut t) = segment.pseudo_distance(point, ..);
-      let mut segment_extended = false;
-      if t < 0f32 {
-        (dist, t) = check_start_extension(segment, point, &mut extension_buf);
-        segment_extended = true;
-      } else if t > 1f32 {
-        (dist, t) = check_end_extension(segment, point, &mut extension_buf);
-        segment_extended = true;
-      }
-      if dist < selected_dist {
-        selected_dist = dist;
-        selected_t = t;
-        if segment_extended {
-          selected_segment = Some(Segment::Line(&extension_buf));
-        } else {
-          selected_segment = Some(segment);
-        }
-      }
+      let (dist, t) = match bias {
+        Bias::Start => segment.pseudo_distance(point, ..=0f32),
+        Bias::End => segment.pseudo_distance(point, 1f32..),
+        Bias::Centre => segment.pseudo_distance(point, 0f32..=1f32),
+      };
+      selected_dist = dist;
+      selected_t = t;
+      selected_segment = Some(segment);
     }
     // Otherwise we've got a multi-segment spline
     else {
-      let mut extended = false;
-
       for (i, &segment_ref) in
         self.segments[segments_range.clone()].iter().enumerate()
       {
         let segment = self.get_segment(segment_ref);
-
-        let (mut dist, mut t);
-        let mut segment_extended = false;
-        // start of the spline
-        if i == 0 {
-          (dist, t) = segment.pseudo_distance(point, ..=1f32);
-          if t < 0f32 {
-            (dist, t) =
-              check_start_extension(segment, point, &mut extension_buf);
-            segment_extended = true;
+        let (dist, t) = if i == 0 {
+          // first
+          if !matches!(bias, Bias::Start) {
+            segment.pseudo_distance(point, 0f32..=1f32)
+          } else {
+            segment.pseudo_distance(point, ..=1f32)
           }
-        }
-        // end of the spline
-        else if i == segments_range.len() - 1 {
-          (dist, t) = segment.pseudo_distance(point, 0f32..);
-          if t > 1f32 {
-            (dist, t) =
-              check_end_extension(segment, point, &mut extension_buf);
-            segment_extended = true;
+        } else if i == segments_range.len() - 1 {
+          // last
+          if !matches!(bias, Bias::End) {
+            segment.pseudo_distance(point, 0f32..=1f32)
+          } else {
+            segment.pseudo_distance(point, 0f32..)
           }
-        }
-        // middle of the spline
-        else {
-          (dist, t) = segment.distance(point);
-        }
+        } else {
+          // middle
+          segment.pseudo_distance(point, ..)
+        };
         if dist < selected_dist {
           selected_dist = dist;
           selected_segment = Some(segment);
           selected_t = t;
-          if segment_extended {
-            extended = true;
-          } else {
-            extended = false;
-          }
         }
-      }
-      if extended {
-        selected_segment = Some(Segment::Line(&extension_buf));
       }
     }
 
@@ -133,34 +113,6 @@ impl Shape {
 
     selected_dist.copysign(sign)
   }
-}
-
-/// Helper to generate & evaluate the straight line extending from the start
-/// of a curve
-#[inline]
-fn check_start_extension(
-  segment: Segment,
-  point: Point,
-  extension_buf: &mut [Point; 2],
-) -> (/* dist */ f32, /* t */ f32) {
-  let p0 = segment.sample(0.);
-  let p1 = p0 + segment.sample_derivative(0.);
-  *extension_buf = [p0, p1];
-  primitives::Line::pseudo_distance(extension_buf, point, ..)
-}
-
-/// Helper to generate & evaluate the straight line extending from the end of
-/// a curve
-#[inline]
-fn check_end_extension(
-  segment: Segment,
-  point: Point,
-  extension_buf: &mut [Point; 2],
-) -> (/* dist */ f32, /* t */ f32) {
-  let p0 = segment.sample(1.);
-  let p1 = p0 + segment.sample_derivative(1.);
-  *extension_buf = [p0, p1];
-  primitives::Line::pseudo_distance(extension_buf, point, ..)
 }
 
 #[cfg(any(test, doctest))]
@@ -224,44 +176,72 @@ mod tests {
 
     {
       let point = (0., 0.).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., 1.).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = -SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., -1.).into();
       // lies exactly on the curve so the sign is undefined
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (0.5, 1.5).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = -SQRT_2 / 2.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 3.).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = -1.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 1.5).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = 0.5;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (5., 0.).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = -1. / 5f32.sqrt();
       assert_approx_eq!(f32, dist, expected);
     }
@@ -324,14 +304,14 @@ mod tests {
 
     {
       let point = (0., 0.).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., 1.).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -SQRT_2;
       assert_approx_eq!(f32, dist, expected);
@@ -342,34 +322,35 @@ mod tests {
       let dist = shape
         .spline_distance_orthogonality(segments_range.clone(), point)
         .0
+         .0
         .abs();
       let expected = SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (0.5, 1.5).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -SQRT_2 / 2.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 3.).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -1.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 1.5).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = 0.5;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (5., 0.).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -1. / 5f32.sqrt();
       assert_approx_eq!(f32, dist, expected);

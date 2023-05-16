@@ -20,6 +20,28 @@ pub fn roots_in_range<const TERMS: usize, R: RangeBounds<f32>>(
     .collect()
 }
 
+/// Find a zero of a twice differentiable function
+///
+/// `x` is the initial guess, `f` is the function and `df` & `ddf` are the
+/// first and second derivatives.
+pub fn halleys_method(
+  mut x: f32,
+  f: impl Fn(f32) -> f32,
+  df: impl Fn(f32) -> f32,
+  ddf: impl Fn(f32) -> f32,
+) -> f32 {
+  for _ in 0..16 {
+    let fx = f(x);
+    if fx.abs() < 0.001 {
+      return x;
+    }
+    let dfx = df(x);
+    let ddfx = ddf(x);
+    x -= (2. * fx * dfx) / (2. * dfx * dfx - fx * ddfx);
+  }
+  x
+}
+
 #[cfg(any(test, doctest))]
 mod tests {
   use super::*;

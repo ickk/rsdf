@@ -3,29 +3,39 @@ use std::ops::Sub;
 use super::*;
 
 /// A point in 2D space
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct Point {
-  pub inner: Vector,
+  pub x: f32,
+  pub y: f32,
+}
+
+impl std::fmt::Debug for Point {
+  fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    formatter
+      .debug_tuple("Point")
+      .field(&self.x)
+      .field(&self.y)
+      .finish()
+  }
 }
 
 impl Point {
   /// The origin
-  pub const ZERO: Point = Point {
-    inner: Vector::ZERO,
-  };
+  pub const ZERO: Point = Point { x: 0f32, y: 0f32 };
 
   /// Create a `Point` from a pair of `x` and `y` coordinates
   #[inline]
   pub const fn new(x: f32, y: f32) -> Self {
-    Point {
-      inner: Vector { x, y },
-    }
+    Point { x, y }
   }
 
   /// Return a `Vector` containing the same components as the point
   #[inline]
   pub fn as_vector(self) -> Vector {
-    self.inner
+    Vector {
+      x: self.x,
+      y: self.y,
+    }
   }
 }
 
@@ -34,7 +44,10 @@ impl Sub<Point> for Point {
 
   #[inline]
   fn sub(self, rhs: Point) -> Vector {
-    Vector::from_points(rhs, self)
+    Vector {
+      x: self.x - rhs.x,
+      y: self.y - rhs.y,
+    }
   }
 }
 
@@ -51,7 +64,8 @@ impl std::ops::Add<Vector> for Point {
   #[inline]
   fn add(self, rhs: Vector) -> Point {
     Point {
-      inner: self.inner + rhs,
+      x: self.x + rhs.x,
+      y: self.y + rhs.y,
     }
   }
 }
@@ -62,7 +76,8 @@ impl std::ops::Sub<Vector> for Point {
   #[inline]
   fn sub(self, rhs: Vector) -> Point {
     Point {
-      inner: self.inner - rhs,
+      x: self.x - rhs.x,
+      y: self.y - rhs.y,
     }
   }
 }
@@ -72,7 +87,7 @@ impl float_cmp::ApproxEq for Point {
 
   fn approx_eq<T: Into<Self::Margin>>(self, other: Self, margin: T) -> bool {
     let margin = margin.into();
-    self.inner.approx_eq(other.inner, margin)
+    self.x.approx_eq(other.x, margin) && self.y.approx_eq(other.y, margin)
   }
 }
 

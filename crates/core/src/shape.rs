@@ -44,6 +44,4 @@ pub struct Shape {
   pub splines: Vec<Spline>,
   /// Buffer containing the contours
   pub contours: Vec<Contour>,
-  // TODO: add a flag for fully-smooth. Otherwise there's an ambiguity
-  // between teardrop and fully-smooth contours.
 }
