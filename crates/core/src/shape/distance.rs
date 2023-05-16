@@ -176,44 +176,72 @@ mod tests {
 
     {
       let point = (0., 0.).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., 1.).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = -SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., -1.).into();
       // lies exactly on the curve so the sign is undefined
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (0.5, 1.5).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = -SQRT_2 / 2.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 3.).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = -1.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 1.5).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = 0.5;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (5., 0.).into();
-      let dist = shape.spline_pseudo_distance(segments_range.clone(), point);
+      let dist = shape.spline_pseudo_distance(
+        segments_range.clone(),
+        point,
+        Bias::Centre,
+      );
       let expected = -1. / 5f32.sqrt();
       assert_approx_eq!(f32, dist, expected);
     }
@@ -276,14 +304,14 @@ mod tests {
 
     {
       let point = (0., 0.).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = 0.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (-1., 1.).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -SQRT_2;
       assert_approx_eq!(f32, dist, expected);
@@ -294,34 +322,35 @@ mod tests {
       let dist = shape
         .spline_distance_orthogonality(segments_range.clone(), point)
         .0
+         .0
         .abs();
       let expected = SQRT_2;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (0.5, 1.5).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -SQRT_2 / 2.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 3.).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -1.;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (2.75, 1.5).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = 0.5;
       assert_approx_eq!(f32, dist, expected);
     }
     {
       let point = (5., 0.).into();
-      let (dist, _) =
+      let ((dist, _), _) =
         shape.spline_distance_orthogonality(segments_range.clone(), point);
       let expected = -1. / 5f32.sqrt();
       assert_approx_eq!(f32, dist, expected);

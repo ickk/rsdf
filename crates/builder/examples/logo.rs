@@ -1,65 +1,92 @@
 use itertools::izip;
 use rsdf_builder::*;
 use rsdf_core::*;
-use std::env;
 use std::fs::File;
 
-// <path d="M300,200 h-150 a150,150 0 1,0 150,-150 z"
-// fill="red" stroke="blue" stroke-width="5" />
-// <path d="M275,175 v-150 a150,150 0 0,0 -150,150 z"
-// fill="yellow" stroke="blue" stroke-width="5" />
-
 fn main() {
-  use std::f32::consts::SQRT_2;
   let shape = ShapeBuilder::new()
-    .contour((20., 20.))
-    .line((20., 30.))
-    .elliptical_arc(
-      10.,
-      20.,
-      1.0,
-      true,
-      false,
-      (20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-      // (20., 10.),
-      // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-      // (30., 20.),
-      // (20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.),
-    )
-    .line((20., 20.))
+    .contour((48.0, 14.5))
+    // upper-right of heart
+    .elliptical_arc(25.0, 25.0, 0., false, true, (89.0, 17.5))
+    // letter 'f'
+    .cubic_bezier((81., 17.), (77., 20.), (77., 24.))
+    .line((77., 28.))
+    .line((73., 28.))
+    .line((73., 33.))
+    .line((77., 33.))
+    .line((77., 48.))
+    .line((84., 48.))
+    .line((84., 33.))
+    .line((90., 33.))
+    .line((91., 28.))
+    .line((84., 28.))
+    .line((84., 25.))
+    .cubic_bezier((84., 23.), (87., 21.5), (91., 23.))
+    // lower-portion of heart
+    .elliptical_arc(24.5, 24.5, 0., false, true, (85.5, 48.7))
+    .line((48., 80.))
+    .line((10., 48.))
+    // letter 'r'
+    .line((20., 48.))
+    .line((20., 44.))
+    .line((15., 44.))
+    .line((15., 38.))
+    .quadratic_bezier((17., 33.), (21., 32.))
+    .line((21., 36.))
+    .line((25., 36.))
+    .line((26., 27.))
+    .quadratic_bezier((18., 24.5), (14.2, 31.))
+    .line((13.5, 27.))
+    .line((6., 27.))
+    .line((6., 31.))
+    .line((9., 31.5))
+    .line((9., 44.))
+    .line((7., 44.))
+    // upper-left of heart
+    .elliptical_arc(25., 25., 0., false, true, (48., 14.5))
+    .end_contour()
+    // letter 's'
+    .contour((44., 34.))
+    .line((46., 29.))
+    .cubic_bezier((38., 23.), (28.5, 26.), (28.5, 33.))
+    .quadratic_bezier((29., 38.), (35.5, 39.))
+    .quadratic_bezier((40., 39.7), (40., 42.))
+    .cubic_bezier((40., 44.3), (34., 45.), (30., 41.5))
+    .line((27., 46.))
+    .cubic_bezier((34., 51.), (46.5, 50.), (47., 42.))
+    .quadratic_bezier((47., 37.5), (40.5, 35.5))
+    .quadratic_bezier((34., 34.5), (35., 32.))
+    .cubic_bezier((35.5, 30.), (40., 30.), (44., 34.))
+    .end_contour()
+    // letter 'd'
+    .contour((63., 46.5))
+    .line((63., 48.))
+    .line((69.5, 48.))
+    .line((69.5, 18.5))
+    .line((63., 17.))
+    .line((63., 27.))
+    .quadratic_bezier((61., 25.6), (57.5, 26.))
+    .elliptical_arc(6.9, 10., 0., false, false, (57.5, 49.))
+    .quadratic_bezier((61., 49.), (63., 46.5))
+    .end_contour()
+    .contour((63., 41.))
+    .elliptical_arc(4., 6., 0., true, true, (63., 33.5))
+    .line((63., 41.))
     .end_contour()
     .build();
 
-  let shape = ShapeBuilder::new()
-    .contour((20., 20.))
-    .line((20. - 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.))
-    .elliptical_arc(
-      10.,
-      20.,
-      1.0,
-      true,
-      // false,
-      // false,
-      true,
-      (20., 30.),
-      // (20., 10.),
-      // (20. + 10. * SQRT_2 / 2., 20. - 10. * SQRT_2 / 2.),
-      // (30., 20.),
-      // (20. + 10. * SQRT_2 / 2., 20. + 10. * SQRT_2 / 2.),
-    )
-    .line((20., 20.))
-    .end_contour()
-    .build();
+  // use std::env;
+  // let Some(filename) = env::args().nth(1) else { panic!("No output filename given") };
+  // let input_filename = format!("{filename}.png");
+  // let output_filename = format!("{filename}_render.png");
+  // eprintln!("input: {input_filename}");
+  // eprintln!("output: {output_filename}");
 
-  dbg!(&shape);
-
-  let Some(filename) = env::args().nth(1) else { panic!("No output filename given") };
-  eprintln!("{filename:?}");
-  let input_filename = format!("{filename}.png");
-  let image = Image::new(&input_filename, [70, 70]);
-
+  let input_filename = "rsdf.png";
+  let output_filename = "rsdf_render.png";
+  let image = Image::new(&input_filename, [97, 86]);
   gen(image, shape).flush();
-  view(&input_filename, &format!("{filename}_render.png"));
+  view(&input_filename, &output_filename);
 }
 
 fn gen(mut image: Image, shape: Shape) -> Image {
@@ -67,8 +94,10 @@ fn gen(mut image: Image, shape: Shape) -> Image {
   for y in 0..image.height {
     for x in 0..image.width {
       let point = Point::from((x as f32, y as f32));
+      // "single channel"
       // let pixel = shape.sample_single_channel(point);
       // let pixel = [pixel, pixel, pixel].map(|sp| distance_color(sp));
+      // multi channel
       let pixel = shape.sample(point);
       let pixel = pixel.map(|sp| distance_color(sp));
       image.set_pixel([x, y], pixel);
@@ -147,18 +176,14 @@ fn view(input_filename: &str, output_filename: &str) {
       };
       let value = median(pixel[0], pixel[1], pixel[2]);
 
-      // colour the output based on a simple threshold
-      let mut output = 0;
-      if value > 120 {
-        output = 255;
-      }
-      // add a red outline effect
-      let mut r_output = output;
-      if value > 117 {
+      let (mut r_output, mut g_output, mut b_output) = (13, 17, 23);
+      if value > 123 {
         r_output = 255;
+        g_output = 255;
+        b_output = 255;
       }
 
-      image.set_pixel([x, y], [r_output, output, output]);
+      image.set_pixel([x, y], [r_output, g_output, b_output]);
     }
   }
   image.flush();

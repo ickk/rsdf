@@ -112,9 +112,7 @@ impl ContourBuilder {
       sweep_ccw,
       end,
     };
-    let centre = elliptical_arc::CentreParam::from(endpoint);
-    // centre.delta += 0.01;
-    let centre_ps = centre.to_ps();
+    let centre_ps = elliptical_arc::CentreParam::from(endpoint).to_ps();
 
     self.shape.points.push(centre_ps[0]);
     self.shape.points.push(centre_ps[1]);

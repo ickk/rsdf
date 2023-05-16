@@ -26,6 +26,10 @@ pub fn distance_color(distance: f32) -> u8 {
   (((distance + MAX_DISTANCE) / (2.0 * MAX_DISTANCE) * MAX_COLOUR) - 1.0) as u8
 }
 
+/// A marker to store which end of a segment a point's distance references
+///
+/// Helps to solve artifacts caused by a spline's pseudo_distance function
+/// looping back on itself.
 #[derive(Copy, Clone, Debug)]
 pub enum Bias {
   Start,

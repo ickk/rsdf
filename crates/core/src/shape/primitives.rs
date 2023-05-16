@@ -105,7 +105,6 @@ impl Segment<'_> {
     point: Point,
     range: R,
   ) -> (/* dist */ f32, /* t */ f32) {
-    // TODO: include ray code here
     match self {
       Segment::Line(ps) => Line::pseudo_distance(ps, point, range),
       Segment::QuadBezier(ps) => QuadBezier::pseudo_distance(ps, point, range),
