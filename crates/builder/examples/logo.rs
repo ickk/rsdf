@@ -95,12 +95,20 @@ fn gen(mut image: Image, shape: Shape) -> Image {
     for x in 0..image.width {
       let point = Point::from((x as f32, y as f32));
       // "single channel"
-      // let pixel = shape.sample_single_channel(point);
-      // let pixel = [pixel, pixel, pixel].map(|sp| distance_color(sp));
+      // let sample = shape.sample_single_channel(point);
+      // let mut color @ [r, g, b] = [sample; 3].map(|sp| distance_color(sp));
+
       // multi channel
-      let pixel = shape.sample(point);
-      let pixel = pixel.map(|sp| distance_color(sp));
-      image.set_pixel([x, y], pixel);
+      let sample = shape.sample(point);
+      let mut color @ [r, g, b] = sample.map(|sp| distance_color(sp));
+
+      // clip remaining values when bulk is 0
+      let sum = r as u16 + g as u16 + b as u16;
+      if r as u16 == sum || g as u16 == sum || b as u16 == sum {
+        color = [0; 3]
+      }
+
+      image.set_pixel([x, y], color);
     }
   }
 
