@@ -12,8 +12,7 @@ pub fn roots_in_range<const TERMS: usize, R: RangeBounds<f32>>(
   polynomial: &[f32; TERMS],
   range: R,
 ) -> ArrayVec<f32, TERMS> {
-  aberth::aberth(polynomial, EPSILON)
-    .unwrap()
+  aberth::aberth(polynomial, 15, EPSILON)
     .iter()
     .filter(|root| root.im.abs() <= EPSILON && range.contains(&root.re))
     .map(|root| root.re)
