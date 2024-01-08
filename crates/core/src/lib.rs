@@ -5,7 +5,6 @@ mod math;
 mod shape;
 
 use math::*;
-use shape::*;
 
 pub use image::Image;
 pub use math::{Point, Vector};
