@@ -7,7 +7,7 @@ fn main() {
   let shape = ShapeBuilder::new()
     .contour((48.0, 14.5))
     // upper-right of heart
-    .elliptical_arc(25.0, 25.0, 0., false, true, (89.0, 17.5))
+    .cubic_bezier((54., 0.5), (80.5, 2.), (89.0, 17.5))
     // letter 'f'
     .cubic_bezier((81., 17.), (77., 20.), (77., 24.))
     .line((77., 28.))
@@ -23,7 +23,7 @@ fn main() {
     .line((84., 25.))
     .cubic_bezier((84., 23.), (87., 21.5), (91., 23.))
     // lower-portion of heart
-    .elliptical_arc(24.5, 24.5, 0., false, true, (85.5, 48.7))
+    .cubic_bezier((94.5, 33.), (93.5, 40.), (85.5, 48.7))
     .line((48., 80.))
     .line((10., 48.))
     // letter 'r'
@@ -43,7 +43,8 @@ fn main() {
     .line((9., 44.))
     .line((7., 44.))
     // upper-left of heart
-    .elliptical_arc(25., 25., 0., false, true, (48., 14.5))
+    .cubic_bezier((0.5, 33.), (0.5, 20.), (9., 12.))
+    .cubic_bezier((20., 1.), (40., 0.5), (48., 14.5))
     .end_contour()
     // letter 's'
     .contour((44., 34.))
@@ -66,11 +67,12 @@ fn main() {
     .line((63., 17.))
     .line((63., 27.))
     .quadratic_bezier((61., 25.6), (57.5, 26.))
-    .elliptical_arc(6.9, 10., 0., false, false, (57.5, 49.))
+    .cubic_bezier((47.5, 26.5), (47.5, 47.), (57.5, 49.))
     .quadratic_bezier((61., 49.), (63., 46.5))
     .end_contour()
     .contour((63., 41.))
-    .elliptical_arc(4., 6., 0., true, true, (63., 33.5))
+    .cubic_bezier((61., 45.5), (56., 43.), (56., 38.))
+    .cubic_bezier((56., 31.), (61., 30.), (63., 33.5))
     .line((63., 41.))
     .end_contour()
     .build();
@@ -130,7 +132,7 @@ fn view(input_filename: &str, output_filename: &str) {
   let sdf_height = info.height as usize;
 
   let mut image =
-    Image::new(&output_filename, [sdf_width * 10, sdf_height * 10]);
+    Image::new(&output_filename, [sdf_width, sdf_height]);
 
   for y in 0..image.height {
     for x in 0..image.width {
