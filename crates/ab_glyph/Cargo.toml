@@ -1,0 +1,10 @@
+[package]
+name = "rsdf_ab_glyph"
+version = "0.0.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+ab_glyph = "0.2.23"
+rsdf_builder = { path = "../builder" }
+rsdf_core = { path = "../core" }

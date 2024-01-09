@@ -68,6 +68,7 @@ impl Shape {
 }
 
 /// Comparison function for pairs of distances
+#[inline]
 fn closer(
   (distance_a, orthogonality_a): Dist,
   (distance_b, orthogonality_b): Dist,

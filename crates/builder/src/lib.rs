@@ -2,6 +2,7 @@
 
 use rsdf_core::*;
 
+#[derive(Debug)]
 pub struct ShapeBuilder {
   shape: Shape,
 }
@@ -27,6 +28,7 @@ impl ShapeBuilder {
   }
 }
 
+#[derive(Debug)]
 pub struct ContourBuilder {
   shape: Shape,
   current_spline: Spline,
