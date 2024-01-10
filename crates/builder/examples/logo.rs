@@ -1,81 +1,133 @@
 use itertools::izip;
 use rsdf_builder::*;
-use rsdf_core::*;
+use rsdf_core::{distance_color, Image, Point, Shape};
 use std::fs::File;
 
+pub enum Op<P>
+where
+  P: Into<Point>,
+{
+  BeginContour(P),
+  EndContour,
+  Line(P, P),
+  QuadBezier(P, P, P),
+  CubicBezier(P, P, P, P),
+  EllipticalArc {
+    p0: P,
+    rx: f32,
+    ry: f32,
+    phi: f32,
+    large_arc: bool,
+    sweep_ccw: bool,
+    p1: P,
+  },
+}
+
 fn main() {
-  let shape = ShapeBuilder::new()
-    .contour((48.0, 14.5))
-    // upper-right of heart
-    .cubic_bezier((54., 0.5), (80.5, 2.), (89.0, 17.5))
-    // letter 'f'
-    .cubic_bezier((81., 17.), (77., 20.), (77., 24.))
-    .line((77., 28.))
-    .line((73., 28.))
-    .line((73., 33.))
-    .line((77., 33.))
-    .line((77., 48.))
-    .line((84., 48.))
-    .line((84., 33.))
-    .line((90., 33.))
-    .line((91., 28.))
-    .line((84., 28.))
-    .line((84., 25.))
-    .cubic_bezier((84., 23.), (87., 21.5), (91., 23.))
-    // lower-portion of heart
-    .cubic_bezier((94.5, 33.), (93.5, 40.), (85.5, 48.7))
-    .line((48., 80.))
-    .line((10., 48.))
-    // letter 'r'
-    .line((20., 48.))
-    .line((20., 44.))
-    .line((15., 44.))
-    .line((15., 38.))
-    .quadratic_bezier((17., 33.), (21., 32.))
-    .line((21., 36.))
-    .line((25., 36.))
-    .line((26., 27.))
-    .quadratic_bezier((18., 24.5), (14.2, 31.))
-    .line((13.5, 27.))
-    .line((6., 27.))
-    .line((6., 31.))
-    .line((9., 31.5))
-    .line((9., 44.))
-    .line((7., 44.))
-    // upper-left of heart
-    .cubic_bezier((0.5, 33.), (0.5, 20.), (9., 12.))
-    .cubic_bezier((20., 1.), (40., 0.5), (48., 14.5))
-    .end_contour()
-    // letter 's'
-    .contour((44., 34.))
-    .line((46., 29.))
-    .cubic_bezier((38., 23.), (28.5, 26.), (28.5, 33.))
-    .quadratic_bezier((29., 38.), (35.5, 39.))
-    .quadratic_bezier((40., 39.7), (40., 42.))
-    .cubic_bezier((40., 44.3), (34., 45.), (30., 41.5))
-    .line((27., 46.))
-    .cubic_bezier((34., 51.), (46.5, 50.), (47., 42.))
-    .quadratic_bezier((47., 37.5), (40.5, 35.5))
-    .quadratic_bezier((34., 34.5), (35., 32.))
-    .cubic_bezier((35.5, 30.), (40., 30.), (44., 34.))
-    .end_contour()
-    // letter 'd'
-    .contour((63., 46.5))
-    .line((63., 48.))
-    .line((69.5, 48.))
-    .line((69.5, 18.5))
-    .line((63., 17.))
-    .line((63., 27.))
-    .quadratic_bezier((61., 25.6), (57.5, 26.))
-    .cubic_bezier((47.5, 26.5), (47.5, 47.), (57.5, 49.))
-    .quadratic_bezier((61., 49.), (63., 46.5))
-    .end_contour()
-    .contour((63., 41.))
-    .cubic_bezier((61., 45.5), (56., 43.), (56., 38.))
-    .cubic_bezier((56., 31.), (61., 30.), (63., 33.5))
-    .line((63., 41.))
-    .end_contour()
-    .build();
+  const WIDTH: usize = 97;
+  const HEIGHT: usize = 86;
+  const SCALE: f32 = 5.0;
+
+  let ops = vec![
+    Op::BeginContour((48.0, 14.5)),
+    Op::CubicBezier((48.0, 14.5), (54.0, 0.5), (80.5, 2.0), (89.0, 17.5)),
+    Op::CubicBezier((89.0, 17.5), (81.0, 17.0), (77.0, 20.0), (77.0, 24.0)),
+    Op::Line((77.0, 24.0), (77.0, 28.0)),
+    Op::Line((77.0, 28.0), (73.0, 28.0)),
+    Op::Line((73.0, 28.0), (73.0, 33.0)),
+    Op::Line((73.0, 33.0), (77.0, 33.0)),
+    Op::Line((77.0, 33.0), (77.0, 48.0)),
+    Op::Line((77.0, 48.0), (84.0, 48.0)),
+    Op::Line((84.0, 48.0), (84.0, 33.0)),
+    Op::Line((84.0, 33.0), (90.0, 33.0)),
+    Op::Line((90.0, 33.0), (91.0, 28.0)),
+    Op::Line((91.0, 28.0), (84.0, 28.0)),
+    Op::Line((84.0, 28.0), (84.0, 25.0)),
+    Op::CubicBezier((84.0, 25.0), (84.0, 23.0), (87.0, 21.5), (91.0, 23.0)),
+    Op::CubicBezier((91.0, 23.0), (94.5, 33.0), (93.5, 40.0), (85.5, 48.7)),
+    Op::Line((85.5, 48.7), (48.0, 80.0)),
+    Op::Line((48.0, 80.0), (10.0, 48.0)),
+    Op::Line((10.0, 48.0), (20.0, 48.0)),
+    Op::Line((20.0, 48.0), (20.0, 44.0)),
+    Op::Line((20.0, 44.0), (15.0, 44.0)),
+    Op::Line((15.0, 44.0), (15.0, 38.0)),
+    Op::QuadBezier((15.0, 38.0), (17.0, 33.0), (21.0, 32.0)),
+    Op::Line((21.0, 32.0), (21.0, 36.0)),
+    Op::Line((21.0, 36.0), (25.0, 36.0)),
+    Op::Line((25.0, 36.0), (26.0, 27.0)),
+    Op::QuadBezier((26.0, 27.0), (18.0, 24.5), (14.2, 31.0)),
+    Op::Line((14.2, 31.0), (13.5, 27.0)),
+    Op::Line((13.5, 27.0), (6.0, 27.0)),
+    Op::Line((6.0, 27.0), (6.0, 31.0)),
+    Op::Line((6.0, 31.0), (9.0, 31.5)),
+    Op::Line((9.0, 31.5), (9.0, 44.0)),
+    Op::Line((9.0, 44.0), (7.0, 44.0)),
+    Op::CubicBezier((7.0, 44.0), (0.5, 33.0), (0.5, 20.0), (9.0, 12.0)),
+    Op::CubicBezier((9.0, 12.0), (20.0, 1.0), (40.0, 0.5), (48.0, 14.5)),
+    Op::EndContour,
+    Op::BeginContour((44.0, 34.0)),
+    Op::Line((44.0, 34.0), (46.0, 29.0)),
+    Op::CubicBezier((46.0, 29.0), (38.0, 23.0), (28.5, 26.0), (28.5, 33.0)),
+    Op::QuadBezier((28.5, 33.0), (29.0, 38.0), (35.5, 39.0)),
+    Op::QuadBezier((35.5, 39.0), (40.0, 39.7), (40.0, 42.0)),
+    Op::CubicBezier((40.0, 42.0), (40.0, 44.3), (34.0, 45.0), (30.0, 41.5)),
+    Op::Line((30.0, 41.5), (27.0, 46.0)),
+    Op::CubicBezier((27.0, 46.0), (34.0, 51.0), (46.5, 50.0), (47.0, 42.0)),
+    Op::QuadBezier((47.0, 42.0), (47.0, 37.5), (40.5, 35.5)),
+    Op::QuadBezier((40.5, 35.5), (34.0, 34.5), (35.0, 32.0)),
+    Op::CubicBezier((35.0, 32.0), (35.5, 30.0), (40.0, 30.0), (44.0, 34.0)),
+    Op::EndContour,
+    Op::BeginContour((63.0, 46.5)),
+    Op::Line((63.0, 46.5), (63.0, 48.0)),
+    Op::Line((63.0, 48.0), (69.5, 48.0)),
+    Op::Line((69.5, 48.0), (69.5, 18.5)),
+    Op::Line((69.5, 18.5), (63.0, 17.0)),
+    Op::Line((63.0, 17.0), (63.0, 27.0)),
+    Op::QuadBezier((63.0, 27.0), (61.0, 25.6), (57.5, 26.0)),
+    Op::CubicBezier((57.5, 26.0), (47.5, 26.5), (47.5, 47.0), (57.5, 49.0)),
+    Op::QuadBezier((57.5, 49.0), (61.0, 49.0), (63.0, 46.5)),
+    Op::EndContour,
+    Op::BeginContour((63.0, 41.0)),
+    Op::CubicBezier((63.0, 41.0), (61.0, 45.5), (56.0, 43.0), (56.0, 38.0)),
+    Op::CubicBezier((56.0, 38.0), (56.0, 31.0), (61.0, 30.0), (63.0, 33.5)),
+    Op::Line((63.0, 33.5), (63.0, 41.0)),
+    Op::EndContour,
+  ];
+
+  let mut shape_builder = Some(ShapeBuilder::new());
+  let mut contour_builder = None;
+  for op in ops {
+    match op {
+      Op::BeginContour(p0) => {
+        contour_builder = shape_builder.take().map(|b| b.contour(p0))
+      },
+      Op::EndContour => {
+        shape_builder = contour_builder.take().map(|b| b.end_contour());
+      },
+      Op::Line(_, p1) => {
+        contour_builder = contour_builder.map(|b| b.line(p1));
+      },
+      Op::QuadBezier(_, p1, p2) => {
+        contour_builder = contour_builder.map(|b| b.quadratic_bezier(p1, p2));
+      },
+      Op::CubicBezier(_, p1, p2, p3) => {
+        contour_builder = contour_builder.map(|b| b.cubic_bezier(p1, p2, p3));
+      },
+      Op::EllipticalArc {
+        p0: _,
+        rx,
+        ry,
+        phi,
+        large_arc,
+        sweep_ccw,
+        p1,
+      } => {
+        contour_builder = contour_builder
+          .map(|b| b.elliptical_arc(rx, ry, phi, large_arc, sweep_ccw, p1))
+      },
+    }
+  }
+  let shape = shape_builder.unwrap().build();
 
   // use std::env;
   // let Some(filename) = env::args().nth(1) else { panic!("No output filename given") };
@@ -86,9 +138,9 @@ fn main() {
 
   let input_filename = "rsdf.png";
   let output_filename = "rsdf_render.png";
-  let image = Image::new(&input_filename, [97, 86]);
+  let image = Image::new(&input_filename, [WIDTH, HEIGHT]);
   gen(image, shape).flush();
-  view(&input_filename, &output_filename);
+  view(&input_filename, &output_filename, SCALE);
 }
 
 fn gen(mut image: Image, shape: Shape) -> Image {
@@ -120,7 +172,7 @@ fn gen(mut image: Image, shape: Shape) -> Image {
   image
 }
 
-fn view(input_filename: &str, output_filename: &str) {
+fn view(input_filename: &str, output_filename: &str, scale: f32) {
   let decoder = png::Decoder::new(File::open(input_filename).unwrap());
   let mut reader = decoder.read_info().unwrap();
   let mut buf = vec![0; reader.output_buffer_size()];
@@ -131,8 +183,13 @@ fn view(input_filename: &str, output_filename: &str) {
   let sdf_width = info.width as usize;
   let sdf_height = info.height as usize;
 
-  let mut image =
-    Image::new(&output_filename, [sdf_width, sdf_height]);
+  let mut image = Image::new(
+    &output_filename,
+    [
+      (sdf_width as f32 * scale) as usize,
+      (sdf_height as f32 * scale) as usize,
+    ],
+  );
 
   for y in 0..image.height {
     for x in 0..image.width {

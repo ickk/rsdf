@@ -1,140 +1,139 @@
-use ab_glyph_rasterizer::Rasterizer;
+use ab_glyph_rasterizer::{Point, Rasterizer};
 use rsdf_core::Image;
 
-fn main() {
-  let mut raster = Rasterizer::new(97, 86);
+pub enum Op<P>
+where
+  P: Into<Point>,
+{
+  BeginContour(P),
+  EndContour,
+  Line(P, P),
+  QuadBezier(P, P, P),
+  CubicBezier(P, P, P, P),
+  EllipticalArc {
+    p0: P,
+    rx: f32,
+    ry: f32,
+    phi: f32,
+    large_arc: bool,
+    sweep_ccw: bool,
+    p1: P,
+  },
+}
 
-  // upper-right of heart
-  raster.draw_cubic(
-    (48.0, 14.5).into(),
-    (54., 0.5).into(),
-    (80.5, 2.).into(),
-    (89.0, 17.5).into(),
-  );
-  // letter 'f'
-  raster.draw_cubic(
-    (89.0, 17.5).into(),
-    (81., 17.).into(),
-    (77., 20.).into(),
-    (77., 24.).into(),
-  );
-  raster.draw_line((77., 24.).into(), (77., 28.).into());
-  raster.draw_line((77., 28.).into(), (73., 28.).into());
-  raster.draw_line((73., 28.).into(), (73., 33.).into());
-  raster.draw_line((73., 33.).into(), (77., 33.).into());
-  raster.draw_line((77., 33.).into(), (77., 48.).into());
-  raster.draw_line((77., 48.).into(), (84., 48.).into());
-  raster.draw_line((84., 48.).into(), (84., 33.).into());
-  raster.draw_line((84., 33.).into(), (90., 33.).into());
-  raster.draw_line((90., 33.).into(), (91., 28.).into());
-  raster.draw_line((91., 28.).into(), (84., 28.).into());
-  raster.draw_line((84., 28.).into(), (84., 25.).into());
-  raster.draw_cubic(
-    (84., 25.).into(),
-    (84., 23.).into(),
-    (87., 21.5).into(),
-    (91., 23.).into(),
-  );
-  // lower-portion of heart
-  raster.draw_cubic(
-    (91., 23.).into(),
-    (94.5, 33.).into(),
-    (93.5, 40.).into(),
-    (85.5, 48.7).into(),
-  );
-  raster.draw_line((85.5, 48.7).into(), (48., 80.).into());
-  raster.draw_line((48., 80.).into(), (10., 48.).into());
-  //     // letter 'r'
-  raster.draw_line((10., 48.).into(), (20., 48.).into());
-  raster.draw_line((20., 48.).into(), (20., 44.).into());
-  raster.draw_line((20., 44.).into(), (15., 44.).into());
-  raster.draw_line((15., 44.).into(), (15., 38.).into());
-  raster.draw_quad((15., 38.).into(), (17., 33.).into(), (21., 32.).into());
-  raster.draw_line((21., 32.).into(), (21., 36.).into());
-  raster.draw_line((21., 36.).into(), (25., 36.).into());
-  raster.draw_line((25., 36.).into(), (26., 27.).into());
-  raster.draw_quad((26., 27.).into(), (18., 24.5).into(), (14.2, 31.).into());
-  raster.draw_line((14.2, 31.).into(), (13.5, 27.).into());
-  raster.draw_line((13.5, 27.).into(), (6., 27.).into());
-  raster.draw_line((6., 27.).into(), (6., 31.).into());
-  raster.draw_line((6., 31.).into(), (9., 31.5).into());
-  raster.draw_line((9., 31.5).into(), (9., 44.).into());
-  raster.draw_line((9., 44.).into(), (7., 44.).into());
-  // upper-left of heart
-  raster.draw_cubic(
-    (7., 44.).into(),
-    (0.5, 33.).into(),
-    (0.5, 20.).into(),
-    (9., 12.).into(),
-  );
-  raster.draw_cubic(
-    (9., 12.).into(),
-    (20., 1.).into(),
-    (40., 0.5).into(),
-    (48., 14.5).into(),
-  );
-  // letter 's'
-  raster.draw_line((44., 34.).into(), (46., 29.).into());
-  raster.draw_cubic(
-    (46., 29.).into(),
-    (38., 23.).into(),
-    (28.5, 26.).into(),
-    (28.5, 33.).into(),
-  );
-  raster.draw_quad((28.5, 33.).into(), (29., 38.).into(), (35.5, 39.).into());
-  raster.draw_quad((35.5, 39.).into(), (40., 39.7).into(), (40., 42.).into());
-  raster.draw_cubic(
-    (40., 42.).into(),
-    (40., 44.3).into(),
-    (34., 45.).into(),
-    (30., 41.5).into(),
-  );
-  raster.draw_line((30., 41.5).into(), (27., 46.).into());
-  raster.draw_cubic(
-    (27., 46.).into(),
-    (34., 51.).into(),
-    (46.5, 50.).into(),
-    (47., 42.).into(),
-  );
-  raster.draw_quad((47., 42.).into(), (47., 37.5).into(), (40.5, 35.5).into());
-  raster.draw_quad((40.5, 35.5).into(), (34., 34.5).into(), (35., 32.).into());
-  raster.draw_cubic(
-    (35., 32.).into(),
-    (35.5, 30.).into(),
-    (40., 30.).into(),
-    (44., 34.).into(),
-  );
-  // letter 'd'
-  raster.draw_line((63., 46.5).into(), (63., 48.).into());
-  raster.draw_line((63., 48.).into(), (69.5, 48.).into());
-  raster.draw_line((69.5, 48.).into(), (69.5, 18.5).into());
-  raster.draw_line((69.5, 18.5).into(), (63., 17.).into());
-  raster.draw_line((63., 17.).into(), (63., 27.).into());
-  raster.draw_quad((63., 27.).into(), (61., 25.6).into(), (57.5, 26.).into());
-  raster.draw_cubic(
-    (57.5, 26.).into(),
-    (47.5, 26.5).into(),
-    (47.5, 47.).into(),
-    (57.5, 49.).into(),
-  );
-  raster.draw_quad((57.5, 49.).into(), (61., 49.).into(), (63., 46.5).into());
-  raster.draw_cubic(
-    (63., 41.).into(),
-    (61., 45.5).into(),
-    (56., 43.).into(),
-    (56., 38.).into(),
-  );
-  raster.draw_cubic(
-    (56., 38.).into(),
-    (56., 31.).into(),
-    (61., 30.).into(),
-    (63., 33.5).into(),
-  );
-  raster.draw_line((63., 33.5).into(), (63., 41.).into());
+trait Scale {
+  fn scale(&self, scale: f32) -> Self;
+}
+impl Scale for Point {
+  fn scale(&self, scale: f32) -> Self {
+    Point {
+      x: self.x * scale,
+      y: self.y * scale,
+    }
+  }
+}
+
+fn main() {
+  const WIDTH: usize = 97;
+  const HEIGHT: usize = 86;
+  const SCALE: f32 = 5.0;
+
+  let scaled_width = (WIDTH as f32 * SCALE) as usize;
+  let scaled_height = (HEIGHT as f32 * SCALE) as usize;
+
+  let mut raster = Rasterizer::new(scaled_width, scaled_height);
+
+  let ops = vec![
+    Op::BeginContour((48.0, 14.5)),
+    Op::CubicBezier((48.0, 14.5), (54.0, 0.5), (80.5, 2.0), (89.0, 17.5)),
+    Op::CubicBezier((89.0, 17.5), (81.0, 17.0), (77.0, 20.0), (77.0, 24.0)),
+    Op::Line((77.0, 24.0), (77.0, 28.0)),
+    Op::Line((77.0, 28.0), (73.0, 28.0)),
+    Op::Line((73.0, 28.0), (73.0, 33.0)),
+    Op::Line((73.0, 33.0), (77.0, 33.0)),
+    Op::Line((77.0, 33.0), (77.0, 48.0)),
+    Op::Line((77.0, 48.0), (84.0, 48.0)),
+    Op::Line((84.0, 48.0), (84.0, 33.0)),
+    Op::Line((84.0, 33.0), (90.0, 33.0)),
+    Op::Line((90.0, 33.0), (91.0, 28.0)),
+    Op::Line((91.0, 28.0), (84.0, 28.0)),
+    Op::Line((84.0, 28.0), (84.0, 25.0)),
+    Op::CubicBezier((84.0, 25.0), (84.0, 23.0), (87.0, 21.5), (91.0, 23.0)),
+    Op::CubicBezier((91.0, 23.0), (94.5, 33.0), (93.5, 40.0), (85.5, 48.7)),
+    Op::Line((85.5, 48.7), (48.0, 80.0)),
+    Op::Line((48.0, 80.0), (10.0, 48.0)),
+    Op::Line((10.0, 48.0), (20.0, 48.0)),
+    Op::Line((20.0, 48.0), (20.0, 44.0)),
+    Op::Line((20.0, 44.0), (15.0, 44.0)),
+    Op::Line((15.0, 44.0), (15.0, 38.0)),
+    Op::QuadBezier((15.0, 38.0), (17.0, 33.0), (21.0, 32.0)),
+    Op::Line((21.0, 32.0), (21.0, 36.0)),
+    Op::Line((21.0, 36.0), (25.0, 36.0)),
+    Op::Line((25.0, 36.0), (26.0, 27.0)),
+    Op::QuadBezier((26.0, 27.0), (18.0, 24.5), (14.2, 31.0)),
+    Op::Line((14.2, 31.0), (13.5, 27.0)),
+    Op::Line((13.5, 27.0), (6.0, 27.0)),
+    Op::Line((6.0, 27.0), (6.0, 31.0)),
+    Op::Line((6.0, 31.0), (9.0, 31.5)),
+    Op::Line((9.0, 31.5), (9.0, 44.0)),
+    Op::Line((9.0, 44.0), (7.0, 44.0)),
+    Op::CubicBezier((7.0, 44.0), (0.5, 33.0), (0.5, 20.0), (9.0, 12.0)),
+    Op::CubicBezier((9.0, 12.0), (20.0, 1.0), (40.0, 0.5), (48.0, 14.5)),
+    Op::EndContour,
+    Op::BeginContour((44.0, 34.0)),
+    Op::Line((44.0, 34.0), (46.0, 29.0)),
+    Op::CubicBezier((46.0, 29.0), (38.0, 23.0), (28.5, 26.0), (28.5, 33.0)),
+    Op::QuadBezier((28.5, 33.0), (29.0, 38.0), (35.5, 39.0)),
+    Op::QuadBezier((35.5, 39.0), (40.0, 39.7), (40.0, 42.0)),
+    Op::CubicBezier((40.0, 42.0), (40.0, 44.3), (34.0, 45.0), (30.0, 41.5)),
+    Op::Line((30.0, 41.5), (27.0, 46.0)),
+    Op::CubicBezier((27.0, 46.0), (34.0, 51.0), (46.5, 50.0), (47.0, 42.0)),
+    Op::QuadBezier((47.0, 42.0), (47.0, 37.5), (40.5, 35.5)),
+    Op::QuadBezier((40.5, 35.5), (34.0, 34.5), (35.0, 32.0)),
+    Op::CubicBezier((35.0, 32.0), (35.5, 30.0), (40.0, 30.0), (44.0, 34.0)),
+    Op::EndContour,
+    Op::BeginContour((63.0, 46.5)),
+    Op::Line((63.0, 46.5), (63.0, 48.0)),
+    Op::Line((63.0, 48.0), (69.5, 48.0)),
+    Op::Line((69.5, 48.0), (69.5, 18.5)),
+    Op::Line((69.5, 18.5), (63.0, 17.0)),
+    Op::Line((63.0, 17.0), (63.0, 27.0)),
+    Op::QuadBezier((63.0, 27.0), (61.0, 25.6), (57.5, 26.0)),
+    Op::CubicBezier((57.5, 26.0), (47.5, 26.5), (47.5, 47.0), (57.5, 49.0)),
+    Op::QuadBezier((57.5, 49.0), (61.0, 49.0), (63.0, 46.5)),
+    Op::EndContour,
+    Op::BeginContour((63.0, 41.0)),
+    Op::CubicBezier((63.0, 41.0), (61.0, 45.5), (56.0, 43.0), (56.0, 38.0)),
+    Op::CubicBezier((56.0, 38.0), (56.0, 31.0), (61.0, 30.0), (63.0, 33.5)),
+    Op::Line((63.0, 33.5), (63.0, 41.0)),
+    Op::EndContour,
+  ];
+
+  for op in ops {
+    match op {
+      Op::Line(p0, p1) => raster.draw_line(
+        Into::<Point>::into(p0).scale(SCALE),
+        Into::<Point>::into(p1).scale(SCALE),
+      ),
+      Op::QuadBezier(p0, p1, p2) => raster.draw_quad(
+        Into::<Point>::into(p0).scale(SCALE),
+        Into::<Point>::into(p1).scale(SCALE),
+        Into::<Point>::into(p2).scale(SCALE),
+      ),
+      Op::CubicBezier(p0, p1, p2, p3) => raster.draw_cubic(
+        Into::<Point>::into(p0).scale(SCALE),
+        Into::<Point>::into(p1).scale(SCALE),
+        Into::<Point>::into(p2).scale(SCALE),
+        Into::<Point>::into(p3).scale(SCALE),
+      ),
+      Op::BeginContour(..) | Op::EndContour => (),
+      _ => panic!("Unknown Op"),
+    }
+  }
 
   // output
   let output_filename = "ab_glyph_rasterizer.png";
-  let mut image = Image::new(&output_filename, [97, 86]);
+  let mut image = Image::new(&output_filename, [scaled_width, scaled_height]);
   raster.for_each_pixel_2d(|x, y, alpha| {
     let value = (alpha * 255.0) as u8;
     let (mut r_output, mut g_output, mut b_output) = (13, 17, 23);
